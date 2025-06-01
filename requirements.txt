@@ -36,7 +36,7 @@ Pillow==9.3.0
 propcache==0.3.1
 protobuf==4.21.12
 psutil==7.0.0
-pybind11 @ file:///private/tmp/pybind11
+pybind11 @ file:///private/tmp/pybind11==2.11.1
 pycparser==2.22
 pydantic==2.11.4
 pydantic_core==2.33.2
