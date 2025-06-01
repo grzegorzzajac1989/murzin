@@ -36,12 +36,12 @@ Pillow==9.3.0
 propcache==0.3.1
 protobuf==4.21.12
 psutil==7.0.0
-pybind11 @ file:///private/tmp/pybind11-20230915-5888-ix9zuq/pybind11-2.11.1
+pybind11 @ file:///private/tmp/pybind11
 pycparser==2.22
 pydantic==2.11.4
 pydantic_core==2.33.2
 Pygments==2.19.1
-PyYAML @ file:///private/tmp/pyyaml-20230913-6026-7ryz4v/PyYAML-6.0.1
+PyYAML @ file:///private/tmp/pyyaml
 regex==2024.11.6
 requests==2.28.1
 safetensors==0.5.3
