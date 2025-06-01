@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
+import os
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -54,4 +55,6 @@ def logout():
     return jsonify({'message': 'Logged out'})
 
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+    port = int(os.environ.get('PORT', 5001))
+    print(f"Starting server on 0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port, debug=True)
