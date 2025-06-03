@@ -1,11 +1,41 @@
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
+import jwt
+import datetime
+from functools import wraps
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'twoj_super_tajny_klucz'  # Zmien na dlugi, losowy secret
 
-# Simple in-memory user and score storage
 users = {}
 scores = {}
+
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+
+        if not token:
+            return jsonify({'error': 'Token is missing'}), 401
+
+        try:
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            current_user = data['user']
+            if current_user not in users:
+                return jsonify({'error': 'User not found'}), 401
+        except jwt.ExpiredSignatureError:
+            return jsonify({'error': 'Token expired'}), 401
+        except Exception:
+            return jsonify({'error': 'Token is invalid'}), 401
+
+        return f(current_user, *args, **kwargs)
+
+    return decorated
 
 @app.route('/auth', methods=['POST'])
 def auth():
@@ -17,50 +47,47 @@ def auth():
     password = data['password']
 
     if login in users:
-        # Login
+        # Logowanie
         if check_password_hash(users[login]['password_hash'], password):
-            return jsonify({"message": "Logged in", "user": login}), 200
+            token = jwt.encode({'user': login, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, app.config['SECRET_KEY'], algorithm='HS256')
+            return jsonify({"message": "Logged in", "token": token}), 200
         else:
-            return jsonify({"error": "Invalid password"}), 401
+            return jsonify({"error": "Wrong password"}), 401
     else:
-        # Registration
+        # Rejestracja
         users[login] = {"password_hash": generate_password_hash(password)}
         scores[login] = 0
-        return jsonify({"message": "Account created and logged in", "user": login}), 201
+        token = jwt.encode({'user': login, 'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, app.config['SECRET_KEY'], algorithm='HS256')
+        return jsonify({"message": "Account created and logged in", "token": token}), 201
 
 @app.route('/add_points', methods=['POST'])
-def add_points():
+@token_required
+def add_points(current_user):
     data = request.get_json()
-    if not data or 'user' not in data:
-        return jsonify({"error": "Missing 'user' field"}), 400
+    points = data.get('points', 1)
 
-    user = data['user']
-    points = data.get('points', 1)  # Default to 1 point
-
-    if user not in users:
-        return jsonify({"error": "User not found"}), 404
-
-    scores[user] = scores.get(user, 0) + points
-    return jsonify({"message": f"Added {points} points for {user}", "total": scores[user]}), 200
+    scores[current_user] = scores.get(current_user, 0) + points
+    return jsonify({"message": f"Added {points} points for {current_user}", "total": scores[current_user]}), 200
 
 @app.route('/scoreboard', methods=['GET'])
 def scoreboard():
-    # Sort scores in descending order
     ranking = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return jsonify(ranking), 200
 
 @app.route('/reset', methods=['POST'])
-def reset():
-    data = request.get_json()
-    if not data or 'user' not in data:
-        return jsonify({"error": "Missing 'user' field"}), 400
+@token_required
+def reset(current_user):
+    # Reset scores tylko dla administratora - tu np. login = 'admin'
+    if current_user != 'admin':
+        return jsonify({"error": "Unauthorized"}), 403
 
-    user = data['user']
-    if user not in users:
-        return jsonify({"error": "User not found"}), 404
+    for key in scores.keys():
+        scores[key] = 0
+    return jsonify({"message": "Scores reset"}), 200
 
-    scores[user] = 0
-    return jsonify({"message": f"Score reset for {user}"}), 200
+@app.route('/', methods=['GET'])
+def home():
+    return "API dziala", 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000, debug=True)
