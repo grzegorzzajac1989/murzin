@@ -103,8 +103,7 @@ def add_points(current_user):
     return jsonify({"message": f"Added {points} points for {target_user}", "total": scores[target_user]}), 200
 
 @app.route('/scoreboard', methods=['GET'])
-@token_required()
-def scoreboard(current_user):
+def scoreboard():
     ranking = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return jsonify(ranking), 200
 

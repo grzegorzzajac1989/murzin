@@ -5,13 +5,11 @@ const API_URL = "https://murzin.onrender.com";
 function App() {
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
-  const [points, setPoints] = useState(1);
-  const [userToAdd, setUserToAdd] = useState("");
-  const [scoreboard, setScoreboard] = useState([]);
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [message, setMessage] = useState("");
+  const [scoreboard, setScoreboard] = useState([]);
 
-  // Authentication (Login/Registration)
+  // Authentication
   const handleAuth = async () => {
     setMessage("");
     try {
@@ -23,16 +21,42 @@ function App() {
       const data = await res.json();
       if (res.ok) {
         setToken(data.token);
+        localStorage.setItem("token", data.token);
         setMessage(data.message);
+        fetchScoreboard(data.token);
       } else {
         setMessage(data.error || "Error");
       }
-    } catch (e) {
+    } catch {
       setMessage("Network error");
     }
   };
 
-  // Add points
+  const handleLogout = () => {
+    setToken("");
+    localStorage.removeItem("token");
+    setMessage("");
+    setLogin("");
+    setPassword("");
+    // Nie czyścimy scoreboardu, żeby był widoczny po logout
+  };
+
+  const fetchScoreboard = async (useToken) => {
+    try {
+      const headers = useToken ? { Authorization: `Bearer ${useToken}` } : {};
+      const res = await fetch(`${API_URL}/scoreboard`, { headers });
+      const data = await res.json();
+      if (res.ok) {
+        setScoreboard(data);
+        setMessage("");
+      } else {
+        setScoreboard([]);
+      }
+    } catch {
+      setMessage("Network error");
+    }
+  };
+
   const handleAddPoints = async () => {
     if (!token) {
       setMessage("You need to log in");
@@ -46,97 +70,185 @@ function App() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ user: userToAdd || login, points: Number(points) }),
+        body: JSON.stringify({ points: 1 }),
       });
       const data = await res.json();
       if (res.ok) {
         setMessage(data.message);
-        fetchScoreboard();
+        fetchScoreboard(token);
       } else {
         setMessage(data.error || "Error");
-      }
-    } catch (e) {
-      setMessage("Network error");
-    }
-  };
-
-  // Fetch scoreboard with authorization token
-  const fetchScoreboard = async () => {
-    if (!token) {
-      setMessage("You need to log in");
-      return;
-    }
-    try {
-      const res = await fetch(`${API_URL}/scoreboard`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setScoreboard(data);
-        setMessage("");
-      } else {
-        setMessage(data.error || "Failed to fetch scoreboard");
       }
     } catch {
       setMessage("Network error");
     }
   };
 
-  // Fetch scoreboard only when token is available
   useEffect(() => {
-    if (token) {
-      fetchScoreboard();
-    }
+    fetchScoreboard(token);
   }, [token]);
 
   return (
-    <div style={{ padding: 20, fontFamily: "Arial" }}>
-      <h1>Murzin - Watching Score Tracker</h1>
+    <div
+      style={{
+        backgroundColor: "#000",
+        color: "#fff",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+        fontFamily: "Arial, sans-serif",
+        textAlign: "center",
+      }}
+    >
+      {!token && (
+        <div
+          style={{
+            marginBottom: 30,
+            maxWidth: 320,
+            width: "100%",
+          }}
+        >
+          <input
+            placeholder="Login"
+            value={login}
+            onChange={(e) => setLogin(e.target.value)}
+            style={{
+              padding: 8,
+              marginBottom: 10,
+              width: "100%",
+              boxSizing: "border-box",
+              borderRadius: 4,
+              border: "1px solid #fff",
+              backgroundColor: "#222",
+              color: "#fff",
+            }}
+          />
+          <input
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              padding: 8,
+              marginBottom: 10,
+              width: "100%",
+              boxSizing: "border-box",
+              borderRadius: 4,
+              border: "1px solid #fff",
+              backgroundColor: "#222",
+              color: "#fff",
+            }}
+          />
+          <button
+            onClick={handleAuth}
+            style={{
+              backgroundColor: "red",
+              color: "white",
+              border: "none",
+              padding: "10px 20px",
+              cursor: "pointer",
+              borderRadius: 4,
+              fontWeight: "bold",
+              fontSize: 16,
+              width: "100%",
+            }}
+          >
+            Login / Register
+          </button>
+        </div>
+      )}
 
-      <h2>Login / Register</h2>
-      <input
-        placeholder="Login"
-        value={login}
-        onChange={(e) => setLogin(e.target.value)}
-      />
-      <br />
-      <input
-        placeholder="Password"
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      <br />
-      <button onClick={handleAuth}>Login / Register</button>
+      {token && (
+        <button
+          onClick={handleAddPoints}
+          style={{
+            backgroundColor: "red",
+            borderRadius: "50%",
+            width: 60,
+            height: 60,
+            fontSize: 24,
+            color: "white",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            marginBottom: 20,
+          }}
+          title="Add 1 point"
+        >
+          +
+        </button>
+      )}
 
-      <h2>Add Points</h2>
-      <input
-        placeholder="User (leave blank for logged-in user)"
-        value={userToAdd}
-        onChange={(e) => setUserToAdd(e.target.value)}
-      />
-      <br />
-      <input
-        type="number"
-        min="1"
-        value={points}
-        onChange={(e) => setPoints(e.target.value)}
-      />
-      <br />
-      <button onClick={handleAddPoints}>Add Points</button>
-
-      <h2>Scoreboard</h2>
-      <ul>
+      {/* Scoreboard zawsze widoczny */}
+      <div
+        style={{
+          maxWidth: 320,
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        <h2 style={{ marginBottom: 12 }}>Scoreboard</h2>
         {scoreboard.map(([user, score]) => (
-          <li key={user}>
-            {user}: {score}
-          </li>
+          <div
+            key={user}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              color: "#fff",
+              padding: "6px 10px",
+              borderRadius: 4,
+              fontWeight: "bold",
+              backgroundColor: "#000",
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+            }}
+          >
+            <span style={{ textAlign: "left", minWidth: 0, flexShrink: 1 }}>
+              {user}
+            </span>
+            <span style={{ marginLeft: 10, flexShrink: 0 }}>{score}</span>
+          </div>
         ))}
-      </ul>
 
-      <p style={{ color: "red" }}>{message}</p>
+        {token && (
+          <button
+            onClick={handleLogout}
+            style={{
+              backgroundColor: "gray",
+              color: "white",
+              border: "none",
+              padding: "8px 16px",
+              cursor: "pointer",
+              borderRadius: 4,
+              fontWeight: "bold",
+              alignSelf: "flex-end",
+              marginTop: 20,
+              width: "auto",
+            }}
+          >
+            Logout
+          </button>
+        )}
+      </div>
+
+      <p
+        style={{
+          color: "red",
+          maxWidth: 320,
+          marginTop: 20,
+          marginLeft: "auto",
+          marginRight: "auto",
+          wordBreak: "break-word",
+          overflowWrap: "break-word",
+        }}
+      >
+        {message}
+      </p>
     </div>
   );
 }
