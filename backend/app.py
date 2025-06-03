@@ -4,8 +4,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
 from datetime import datetime, timedelta
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app) 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'zmien_to_na_cos_silnego')
 
 users = {}   # {login: {"password_hash": ..., "role": "user"/"admin"}}
@@ -34,7 +36,7 @@ def token_required(role=None):
             except jwt.ExpiredSignatureError:
                 return jsonify({"error": "Token expired"}), 401
             except Exception:
-                return jsonify({"error": "Token is invalid"}), 401
+                return jsonify({"error": "Token is invalid"}), 401a
 
             return f(current_user, *args, **kwargs)
         return decorated
