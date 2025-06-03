@@ -1,51 +1,53 @@
-import os
-from flask import Flask, request, jsonify, session
-from flask_cors import CORS
+from flask import Flask, request, jsonify
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.secret_key = 'supersecretkey'
 
-CORS(app, supports_credentials=True, origins=["http://localhost:5500"])
-
+# Prosta baza użytkowników w pamięci (na start)
 users = {}
 scores = {}
 
-@app.route('/register_or_login', methods=['POST'])
-def register_or_login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    if not username or not password:
-        return jsonify({'error': 'Missing username or password'}), 400
-    if username in users:
-        # user exists, try login
-        if users[username] != password:
-            return jsonify({'error': 'Incorrect credentials'}), 401
+@app.route('/auth', methods=['POST'])
+def auth():
+    data = request.get_json()
+    if not data or 'login' not in data or 'password' not in data:
+        return jsonify({"error": "Missing login or password"}), 400
+
+    login = data['login']
+    password = data['password']
+
+    if login in users:
+        # Logowanie
+        if check_password_hash(users[login]['password_hash'], password):
+            return jsonify({"message": "Zalogowano", "user": login}), 200
+        else:
+            return jsonify({"error": "Błędne hasło"}), 401
     else:
-        # register new user
-        users[username] = password
-        scores[username] = 0
-    session['username'] = username
-    return jsonify({'message': 'Logged in', 'username': username})
+        # Rejestracja
+        users[login] = {"password_hash": generate_password_hash(password)}
+        scores[login] = 0
+        return jsonify({"message": "Konto utworzone i zalogowano", "user": login}), 201
 
-@app.route('/add_point', methods=['POST'])
-def add_point():
-    if 'username' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
-    username = session['username']
-    scores[username] += 1
-    return jsonify({'message': 'Point added', 'username': username, 'score': scores[username]})
+@app.route('/add_points', methods=['POST'])
+def add_points():
+    data = request.get_json()
+    if not data or 'user' not in data:
+        return jsonify({"error": "Missing 'user' field"}), 400
 
-@app.route('/leaderboard')
-def leaderboard():
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    return jsonify(sorted_scores)
+    user = data['user']
+    points = data.get('points', 1)  # Domyślnie 1 punkt
 
-@app.route('/logout', methods=['POST'])
-def logout():
-    session.pop('username', None)
-    return jsonify({'message': 'Logged out'})
+    if user not in users:
+        return jsonify({"error": "Nie znaleziono użytkownika"}), 404
+
+    scores[user] = scores.get(user, 0) + points
+    return jsonify({"message": f"Dodano {points} punktów dla {user}", "total": scores[user]}), 200
+
+@app.route('/scoreboard', methods=['GET'])
+def scoreboard():
+    # Ranking wg punktów malejąco
+    ranking = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return jsonify(ranking), 200
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=10000, debug=True)
