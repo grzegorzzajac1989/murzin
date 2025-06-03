@@ -8,7 +8,7 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app) 
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'zmien_to_na_cos_silnego')
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 users = {}   # {login: {"password_hash": ..., "role": "user"/"admin"}}
 scores = {}  # {login: points}
