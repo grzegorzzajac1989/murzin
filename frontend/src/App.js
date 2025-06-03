@@ -60,24 +60,36 @@ function App() {
     }
   };
 
-  // Fetch scoreboard
+  // Fetch scoreboard with authorization token
   const fetchScoreboard = async () => {
+    if (!token) {
+      setMessage("You need to log in");
+      return;
+    }
     try {
-      const res = await fetch(`${API_URL}/scoreboard`);
+      const res = await fetch(`${API_URL}/scoreboard`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
       if (res.ok) {
         setScoreboard(data);
+        setMessage("");
       } else {
-        setMessage("Failed to fetch scoreboard");
+        setMessage(data.error || "Failed to fetch scoreboard");
       }
     } catch {
       setMessage("Network error");
     }
   };
 
+  // Fetch scoreboard only when token is available
   useEffect(() => {
-    fetchScoreboard();
-  }, []);
+    if (token) {
+      fetchScoreboard();
+    }
+  }, [token]);
 
   return (
     <div style={{ padding: 20, fontFamily: "Arial" }}>
