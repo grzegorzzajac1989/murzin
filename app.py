@@ -1,6 +1,6 @@
+import os
 from flask import Flask, request, jsonify, session
 from flask_cors import CORS
-import os
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -10,29 +10,21 @@ CORS(app, supports_credentials=True, origins=["http://localhost:5500"])
 users = {}
 scores = {}
 
-@app.route('/register', methods=['POST'])
-def register():
+@app.route('/register_or_login', methods=['POST'])
+def register_or_login():
     data = request.json
     username = data.get('username')
     password = data.get('password')
     if not username or not password:
         return jsonify({'error': 'Missing username or password'}), 400
     if username in users:
-        return jsonify({'error': 'User exists'}), 400
-    users[username] = password
-    scores[username] = 0
-    session['username'] = username
-    return jsonify({'message': 'Registered', 'username': username})
-
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    if not username or not password:
-        return jsonify({'error': 'Missing username or password'}), 400
-    if users.get(username) != password:
-        return jsonify({'error': 'Incorrect credentials'}), 401
+        # user exists, try login
+        if users[username] != password:
+            return jsonify({'error': 'Incorrect credentials'}), 401
+    else:
+        # register new user
+        users[username] = password
+        scores[username] = 0
     session['username'] = username
     return jsonify({'message': 'Logged in', 'username': username})
 
@@ -55,6 +47,5 @@ def logout():
     return jsonify({'message': 'Logged out'})
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
-    print(f"Starting server on 0.0.0.0:{port}")
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port, debug=True)
