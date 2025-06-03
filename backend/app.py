@@ -36,7 +36,7 @@ def token_required(role=None):
             except jwt.ExpiredSignatureError:
                 return jsonify({"error": "Token expired"}), 401
             except Exception:
-                return jsonify({"error": "Token is invalid"}), 401a
+                return jsonify({"error": "Token is invalid"}), 401
 
             return f(current_user, *args, **kwargs)
         return decorated
