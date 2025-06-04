@@ -18,7 +18,36 @@ body {
   font-size: 12px;
   user-select: none;
   font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center; /* pionowe wyśrodkowanie */
+  gap: 10px;
+  height: 28px; /* stała wysokość */
+  line-height: 1;
+  z-index: 1000;
+  background: transparent;
+  width: auto; /* usunięte szerokości, by nie rozciągać */
+  justify-content: flex-end;
 }
+
+/* Nowy element po lewej */
+.footer-left {
+  position: fixed;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  align-items: center; /* pionowe wyśrodkowanie */
+  gap: 8px;
+  color: #bbb;
+  font-size: 14px;
+  font-weight: 600;
+  user-select: none;
+  background: transparent;
+  height: 28px; /* taka sama wysokość jak .footer */
+  line-height: 1;
+  z-index: 1000;
+}
+
+/* Reszta stylów bez zmian */
 
 .lang-switcher {
   position: fixed;
@@ -39,7 +68,7 @@ body {
   color: white;
   box-shadow: none;
   border-radius: 5px;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -186,4 +215,33 @@ body {
 
 .score-entry:last-child {
   border-bottom: none;
+}
+
+.user-name {
+  user-select: none;
+}
+
+.hamburger-menu {
+  font-size: 20px;
+  background: transparent;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.2s ease, background-color 0.2s ease;
+  user-select: none;
+}
+
+.hamburger-menu:hover,
+.hamburger-menu:focus {
+  background-color: #222;
+  outline: none;
+}
+
+.hamburger-menu:focus {
+  box-shadow: 0 0 5px 2px gray;
 }

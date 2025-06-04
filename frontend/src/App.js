@@ -21,6 +21,11 @@ export default function App() {
     if (token) fetchScoreboard();
   }, [token]);
 
+  const getDisplayName = () => {
+    if (login) return login;
+    return language === "PL" ? "Gość" : "Guest";
+  };
+
   async function fetchScoreboard() {
     try {
       const res = await fetch(`${API_URL}/scoreboard`, {
@@ -213,7 +218,22 @@ export default function App() {
           <button onClick={handleAuth} className="auth-button">
             {language === "PL" ? "Zaloguj / Zarejestruj" : "Log In / Register"}
           </button>
-          <div className="footer">© 2025 Czomik & Czomik</div>
+          <div className="footer">
+            © 2025 Czomik & Czomik
+            <div className="footer-left">
+              <button
+                className="hamburger-menu"
+                aria-label="Menu"
+                onClick={() => {
+                  /* tu można dodać rozwijanie menu */
+                }}
+              >
+                &#9776;
+              </button>
+              <span className="user-name">{getDisplayName()}</span>
+            </div>
+          </div>
+          {message && <p className="message">{message}</p>}
         </div>
       ) : (
         <>
@@ -249,7 +269,22 @@ export default function App() {
               ))}
             </div>
           )}
-          <div className="footer">© 2025 Czomik & Czomik</div>
+          <div className="footer">
+            © 2025 Czomik & Czomik
+            <div className="footer-left">
+              <button
+                className="hamburger-menu"
+                aria-label="Menu"
+                onClick={() => {
+                  /* tu można dodać rozwijanie menu */
+                }}
+              >
+                &#9776;
+              </button>
+              <span className="user-name">{getDisplayName()}</span>
+            </div>
+          </div>
+          {message && <p className="message">{message}</p>}
         </>
       )}
     </div>
