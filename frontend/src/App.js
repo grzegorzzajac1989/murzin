@@ -16,6 +16,7 @@ export default function App() {
   const [language, setLanguage] = useState("PL");
 
   const holdTimer = useRef(null);
+  const passwordInputRef = useRef(null);
 
   useEffect(() => {
     if (token) fetchScoreboard();
@@ -183,7 +184,14 @@ export default function App() {
             placeholder={language === "PL" ? "Login" : "Username"}
             value={login}
             onChange={(e) => setLogin(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                passwordInputRef.current?.focus();
+              }
+            }}
             className="auth-input"
+            autoFocus
           />
           <input
             type="password"
@@ -191,6 +199,13 @@ export default function App() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="auth-input"
+            ref={passwordInputRef}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAuth();
+              }
+            }}
           />
           <button onClick={handleAuth} className="auth-button">
             {language === "PL" ? "Zaloguj / Zarejestruj" : "Log In / Register"}
