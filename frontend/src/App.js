@@ -153,14 +153,14 @@ export default function App() {
     }
   }
 
-  function handlePlusMouseDown() {
+  function handlePointerDown() {
     holdTimer.current = setTimeout(() => {
       setShowForm(true);
       setMessage(language === "PL" ? "Wybierz opcje i kliknij +, aby dodać punkty" : "Select options and click + to add points");
-    }, 2000);
+    }, 1000); // 1 sekunda
   }
 
-  function handlePlusMouseUp() {
+  function handlePointerUp() {
     if (holdTimer.current) {
       clearTimeout(holdTimer.current);
       holdTimer.current = null;
@@ -201,10 +201,8 @@ export default function App() {
         <>
           {showForm && <InteractiveForm onSubmit={handleFormSubmit} />}
           <button
-            onMouseDown={handlePlusMouseDown}
-            onMouseUp={handlePlusMouseUp}
-            onTouchStart={handlePlusMouseDown}
-            onTouchEnd={handlePlusMouseUp}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
             className="add-button"
             title={
               showForm
@@ -212,8 +210,8 @@ export default function App() {
                   ? "Kliknij, aby dodać punkty z formularza"
                   : "Click to add points from the form"
                 : language === "PL"
-                ? "Kliknij, aby dodać 1 punkt\nPrzytrzymaj 2s, aby otworzyć formularz"
-                : "Click to add 1 point\nHold for 2s to open the form"
+                ? "Kliknij, aby dodać 1 punkt\nPrzytrzymaj 1s, aby otworzyć formularz"
+                : "Click to add 1 point\nHold for 1s to open the form"
             }
           >
             +
