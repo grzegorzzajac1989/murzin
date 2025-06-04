@@ -1,16 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { InteractiveForm } from "./InteractiveForm";
+import "./App.css";
+import LanguageSwitcher from "./LanguageSwitcher";
 
 const API_URL = "https://murzin.onrender.com";
 
-function App() {
+export default function App() {
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [message, setMessage] = useState("");
   const [scoreboard, setScoreboard] = useState([]);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({});
+  const [language, setLanguage] = useState("PL"); // Dodano zarządzanie językiem
 
-  // Authentication
-  const handleAuth = async () => {
+  const holdTimer = useRef(null);
+
+  useEffect(() => {
+    if (token) fetchScoreboard();
+  }, [token]);
+
+  async function fetchScoreboard() {
+    try {
+      const res = await fetch(`${API_URL}/scoreboard`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setScoreboard(data);
+      } else {
+        setMessage(language === "PL" ? "Błąd pobierania scoreboardu" : "Error fetching scoreboard");
+      }
+    } catch {
+      setMessage(language === "PL" ? "Błąd sieci" : "Network error");
+    }
+  }
+
+  async function handleAuth() {
     setMessage("");
     try {
       const res = await fetch(`${API_URL}/auth`, {
@@ -22,45 +49,70 @@ function App() {
       if (res.ok) {
         setToken(data.token);
         localStorage.setItem("token", data.token);
-        setMessage(data.message);
-        fetchScoreboard(data.token);
+        fetchScoreboard();
+        setMessage(language === "PL" ? "Zalogowano" : "Logged in");
       } else {
-        setMessage(data.error || "Error");
+        setMessage(data.error || (language === "PL" ? "Błąd logowania" : "Login error"));
       }
     } catch {
-      setMessage("Network error");
+      setMessage(language === "PL" ? "Błąd sieci" : "Network error");
     }
-  };
+  }
 
-  const handleLogout = () => {
+  function handleLogout() {
     setToken("");
     localStorage.removeItem("token");
-    setMessage("");
     setLogin("");
     setPassword("");
-    // Nie czyścimy scoreboardu, żeby był widoczny po logout
-  };
+    setMessage("");
+    setScoreboard([]);
+    setShowForm(false);
+    setFormData({});
+  }
 
-  const fetchScoreboard = async (useToken) => {
-    try {
-      const headers = useToken ? { Authorization: `Bearer ${useToken}` } : {};
-      const res = await fetch(`${API_URL}/scoreboard`, { headers });
-      const data = await res.json();
-      if (res.ok) {
-        setScoreboard(data);
-        setMessage("");
-      } else {
-        setScoreboard([]);
-      }
-    } catch {
-      setMessage("Network error");
+  const sumPoints = (data) => {
+    if (!data) return 0;
+    let points = 0;
+
+    if (data.typGrupy === "pojedynczy") {
+      points += 1;
     }
+
+    if (data.typGrupy === "gang") {
+      if (data.gangSize === "mala") points += 3;
+      else if (data.gangSize === "srednia") points += 5;
+      else if (data.gangSize === "duza") points += 8;
+    }
+
+    if (data.wyglad === "wyjatkowa_uroda") {
+      points += 2;
+
+      if (data.wyjatkowaUrodaDetails === "hot_murzinka") points += 2;
+      if (data.wyjatkowaUrodaDetails === "przystojny_murzin") points += 2;
+    }
+
+    if (data.status === "gangsta") {
+      points += 3;
+      if (data.gangstaAccessories) points += 1;
+    }
+
+    if (data.status === "przedsiebiorca") {
+      points += 2;
+      if (data.entrepreneurDetails) points += 1;
+    }
+
+    if (data.status === "uciekajacy") {
+      points += 1;
+      if (data.escapingReasons) points += 1;
+    }
+
+    return points;
   };
 
-  const handleAddPoints = async () => {
+  async function addPoints(points) {
     if (!token) {
-      setMessage("You need to log in");
-      return;
+      setMessage(language === "PL" ? "Zaloguj się, aby dodawać punkty" : "Log in to add points");
+      return false;
     }
     setMessage("");
     try {
@@ -70,187 +122,119 @@ function App() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ points: 1 }),
+        body: JSON.stringify({ points }),
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage(data.message);
-        fetchScoreboard(token);
+        setMessage(data.message || (language === "PL" ? "Dodano punkty" : "Points added"));
+        fetchScoreboard();
+        return true;
       } else {
-        setMessage(data.error || "Error");
+        setMessage(data.error || (language === "PL" ? "Błąd dodawania punktów" : "Error adding points"));
+        return false;
       }
     } catch {
-      setMessage("Network error");
+      setMessage(language === "PL" ? "Błąd sieci" : "Network error");
+      return false;
     }
-  };
+  }
 
-  useEffect(() => {
-    fetchScoreboard(token);
-  }, [token]);
+  async function handleFormSubmit(data) {
+    setFormData(data);
+    const points = sumPoints(data);
+    if (points === 0) {
+      setMessage(language === "PL" ? "Formularz jest pusty lub niekompletny." : "Form is empty or incomplete.");
+      return;
+    }
+    const success = await addPoints(points);
+    if (success) {
+      setShowForm(false);
+      setFormData({});
+    }
+  }
+
+  function handlePlusMouseDown() {
+    holdTimer.current = setTimeout(() => {
+      setShowForm(true);
+      setMessage(language === "PL" ? "Wybierz opcje i kliknij +, aby dodać punkty" : "Select options and click + to add points");
+    }, 2000);
+  }
+
+  function handlePlusMouseUp() {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+      if (!showForm) {
+        addPoints(1);
+      } else {
+        document.querySelector("form")?.dispatchEvent(
+          new Event("submit", { cancelable: true, bubbles: true })
+        );
+      }
+    }
+  }
 
   return (
-    <div
-      style={{
-        backgroundColor: "#000",
-        color: "#fff",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-        fontFamily: "Arial, sans-serif",
-        textAlign: "center",
-      }}
-    >
-      {!token && (
-        <div
-          style={{
-            marginBottom: 30,
-            maxWidth: 320,
-            width: "100%",
-          }}
-        >
+    <div className="app-container">
+      <LanguageSwitcher onLanguageChange={setLanguage} activeLang={language} />
+      {!token ? (
+        <div className="auth-container">
           <input
-            placeholder="Login"
+            placeholder={language === "PL" ? "Login" : "Username"}
             value={login}
             onChange={(e) => setLogin(e.target.value)}
-            style={{
-              padding: 8,
-              marginBottom: 10,
-              width: "100%",
-              boxSizing: "border-box",
-              borderRadius: 4,
-              border: "1px solid #fff",
-              backgroundColor: "#222",
-              color: "#fff",
-            }}
+            className="auth-input"
           />
           <input
-            placeholder="Password"
             type="password"
+            placeholder={language === "PL" ? "Hasło" : "Password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{
-              padding: 8,
-              marginBottom: 10,
-              width: "100%",
-              boxSizing: "border-box",
-              borderRadius: 4,
-              border: "1px solid #fff",
-              backgroundColor: "#222",
-              color: "#fff",
-            }}
+            className="auth-input"
           />
-          <button
-            onClick={handleAuth}
-            style={{
-              backgroundColor: "red",
-              color: "white",
-              border: "none",
-              padding: "10px 20px",
-              cursor: "pointer",
-              borderRadius: 4,
-              fontWeight: "bold",
-              fontSize: 16,
-              width: "100%",
-            }}
-          >
-            Login / Register
+          <button onClick={handleAuth} className="auth-button">
+            {language === "PL" ? "Zaloguj / Zarejestruj" : "Log In / Register"}
           </button>
         </div>
-      )}
-
-      {token && (
-        <button
-          onClick={handleAddPoints}
-          style={{
-            backgroundColor: "red",
-            borderRadius: "50%",
-            width: 60,
-            height: 60,
-            fontSize: 24,
-            color: "white",
-            border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            marginBottom: 20,
-          }}
-          title="Add 1 point"
-        >
-          +
-        </button>
-      )}
-
-      {/* Scoreboard zawsze widoczny */}
-      <div
-        style={{
-          maxWidth: 320,
-          width: "100%",
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        <h2 style={{ marginBottom: 12 }}>Scoreboard</h2>
-        {scoreboard.map(([user, score]) => (
-          <div
-            key={user}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              color: "#fff",
-              padding: "6px 10px",
-              borderRadius: 4,
-              fontWeight: "bold",
-              backgroundColor: "#000",
-              wordBreak: "break-word",
-              overflowWrap: "break-word",
-            }}
-          >
-            <span style={{ textAlign: "left", minWidth: 0, flexShrink: 1 }}>
-              {user}
-            </span>
-            <span style={{ marginLeft: 10, flexShrink: 0 }}>{score}</span>
-          </div>
-        ))}
-
-        {token && (
+      ) : (
+        <>
+          {showForm && <InteractiveForm onSubmit={handleFormSubmit} />}
           <button
-            onClick={handleLogout}
-            style={{
-              backgroundColor: "gray",
-              color: "white",
-              border: "none",
-              padding: "8px 16px",
-              cursor: "pointer",
-              borderRadius: 4,
-              fontWeight: "bold",
-              alignSelf: "flex-end",
-              marginTop: 20,
-              width: "auto",
-            }}
+            onMouseDown={handlePlusMouseDown}
+            onMouseUp={handlePlusMouseUp}
+            onTouchStart={handlePlusMouseDown}
+            onTouchEnd={handlePlusMouseUp}
+            className="add-button"
+            title={
+              showForm
+                ? language === "PL"
+                  ? "Kliknij, aby dodać punkty z formularza"
+                  : "Click to add points from the form"
+                : language === "PL"
+                ? "Kliknij, aby dodać 1 punkt\nPrzytrzymaj 2s, aby otworzyć formularz"
+                : "Click to add 1 point\nHold for 2s to open the form"
+            }
           >
-            Logout
+            +
           </button>
-        )}
-      </div>
-
-      <p
-        style={{
-          color: "red",
-          maxWidth: 320,
-          marginTop: 20,
-          marginLeft: "auto",
-          marginRight: "auto",
-          wordBreak: "break-word",
-          overflowWrap: "break-word",
-        }}
-      >
-        {message}
-      </p>
+          <button onClick={handleLogout} className="logout-button">
+            &lt;
+          </button>
+          {!showForm && (
+            <div className="scoreboard-container">
+              <h2>{language === "PL" ? "Tabela wyników" : "Scoreboard"}</h2>
+              {scoreboard.length === 0 && <p>{language === "PL" ? "Brak wyników" : "No results"}</p>}
+              {scoreboard.map(([user, score]) => (
+                <div key={user} className="score-entry">
+                  <span>{user}</span>
+                  <span>{score}</span>
+                  <div className="footer">© 2025 Czomik & Czomik</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
-
-export default App;
