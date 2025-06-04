@@ -10,6 +10,10 @@ body {
   overflow: hidden; /* opcjonalnie, żeby scroll nie przeszkadzał */
 }
 
+.logged-in .message.logged-in-only {
+  display: none;
+}
+
 .footer {
   position: fixed;
   bottom: 10px;
@@ -222,26 +226,37 @@ body {
 }
 
 .hamburger-menu {
-  font-size: 20px;
-  background: transparent;
-  color: white;
-  border: none;
-  border-radius: 5px;
+  width: 40px;
+  height: 40px;
   cursor: pointer;
-  padding: 8px 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: none;
+  background-color: transparent;
+  color: white;
+  border-radius: 5px;
   transition: box-shadow 0.2s ease, background-color 0.2s ease;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  font-size: 28px;
+  line-height: 1;
   user-select: none;
-}
-
-.hamburger-menu:hover,
-.hamburger-menu:focus {
-  background-color: #222;
+  padding: 0;
   outline: none;
+
+  /* dodatkowe wyrównanie */
+  position: relative;
+  top: -3px; /* przesunięcie w górę */
 }
 
-.hamburger-menu:focus {
+.hamburger-menu:hover {
+  background-color: #222;
+}
+
+.hamburger-menu:focus,
+.hamburger-menu:active {
+  background-color: transparent; /* wróć do przeźroczystego po kliknięciu/focus */
   box-shadow: 0 0 5px 2px gray;
+  outline: none;
 }

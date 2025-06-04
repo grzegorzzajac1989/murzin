@@ -7,7 +7,7 @@ const API_URL = "https://murzin.onrender.com";
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [login, setLogin] = useState("");
+  const [login, setLogin] = useState(localStorage.getItem("login") || "");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [scoreboard, setScoreboard] = useState([]);
@@ -18,7 +18,11 @@ export default function App() {
   const holdTimer = useRef(null);
 
   useEffect(() => {
-    if (token) fetchScoreboard();
+    if (token) {
+      const storedLogin = localStorage.getItem("login");
+      if (storedLogin) setLogin(storedLogin);
+      fetchScoreboard();
+    }
   }, [token]);
 
   const getDisplayName = () => {
@@ -54,6 +58,7 @@ export default function App() {
       if (res.ok) {
         setToken(data.token);
         localStorage.setItem("token", data.token);
+        localStorage.setItem("login", login);
         fetchScoreboard();
         setMessage(language === "PL" ? "Zalogowano" : "Logged in");
       } else {
@@ -68,6 +73,7 @@ export default function App() {
     setToken("");
     localStorage.removeItem("token");
     setLogin("");
+    localStorage.removeItem("login");
     setPassword("");
     setMessage("");
     setScoreboard([]);
@@ -139,13 +145,14 @@ export default function App() {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage(data.message || (language === "PL" ? "Dodano punkty" : "Points added"));
-        fetchScoreboard();
-        return true;
+        let msgText = data.message || (language === "PL" ? "Dodano punkty" : "Points added");
+        setMessage(msgText);
       } else {
         setMessage(data.error || (language === "PL" ? "Błąd dodawania punktów" : "Error adding points"));
         return false;
       }
+      fetchScoreboard();
+      return true;
     } catch {
       setMessage(language === "PL" ? "Błąd sieci" : "Network error");
       return false;
@@ -188,7 +195,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-container">
+    <div className={`app-container${token ? " logged-in" : ""}`}>
       <LanguageSwitcher onLanguageChange={setLanguage} activeLang={language} />
       {!token ? (
         <div className="auth-container">
@@ -233,7 +240,9 @@ export default function App() {
               <span className="user-name">{getDisplayName()}</span>
             </div>
           </div>
-          {message && <p className="message">{message}</p>}
+          {message && (
+            <p className="message">{message}</p>
+          )}
         </div>
       ) : (
         <>
@@ -284,7 +293,17 @@ export default function App() {
               <span className="user-name">{getDisplayName()}</span>
             </div>
           </div>
-          {message && <p className="message">{message}</p>}
+          {message && (
+            <p
+              className={`message ${
+                (message === "Zalogowano" ||
+                message === "Logged in" ||
+                message.includes("Added 1 points for")) ? "logged-in-only" : ""
+              }`}
+            >
+              {message}
+            </p>
+          )}
         </>
       )}
     </div>
