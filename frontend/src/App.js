@@ -16,7 +16,6 @@ export default function App() {
   const [language, setLanguage] = useState("PL");
 
   const holdTimer = useRef(null);
-  const passwordInputRef = useRef(null);
 
   useEffect(() => {
     if (token) fetchScoreboard();
@@ -69,6 +68,14 @@ export default function App() {
     setScoreboard([]);
     setShowForm(false);
     setFormData({});
+  }
+
+  function handleBackOrLogout() {
+    if (showForm) {
+      setShowForm(false);
+    } else {
+      handleLogout();
+    }
   }
 
   const sumPoints = (data) => {
@@ -158,7 +165,7 @@ export default function App() {
     holdTimer.current = setTimeout(() => {
       setShowForm(true);
       setMessage(language === "PL" ? "Wybierz opcje i kliknij +, aby dodać punkty" : "Select options and click + to add points");
-    }, 1000); // 1 sekunda
+    }, 1000);
   }
 
   function handlePointerUp() {
@@ -184,14 +191,12 @@ export default function App() {
             placeholder={language === "PL" ? "Login" : "Username"}
             value={login}
             onChange={(e) => setLogin(e.target.value)}
+            className="auth-input"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                e.preventDefault();
-                passwordInputRef.current?.focus();
+                document.querySelector("input[type='password']")?.focus();
               }
             }}
-            className="auth-input"
-            autoFocus
           />
           <input
             type="password"
@@ -199,10 +204,8 @@ export default function App() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="auth-input"
-            ref={passwordInputRef}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                e.preventDefault();
                 handleAuth();
               }
             }}
@@ -231,7 +234,7 @@ export default function App() {
           >
             +
           </button>
-          <button onClick={handleLogout} className="logout-button">
+          <button onClick={handleBackOrLogout} className="logout-button">
             &lt;
           </button>
           {!showForm && (
@@ -242,11 +245,11 @@ export default function App() {
                 <div key={user} className="score-entry">
                   <span>{user}</span>
                   <span>{score}</span>
-                  <div className="footer">© 2025 Czomik & Czomik</div>
                 </div>
               ))}
             </div>
           )}
+          <div className="footer">© 2025 Czomik & Czomik</div>
         </>
       )}
     </div>

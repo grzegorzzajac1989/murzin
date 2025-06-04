@@ -1,1 +1,3 @@
-# czomik na wakacjach
+# czomik na wakacjach 🤠
+
+https://murzing.onrender.com

@@ -10,7 +10,6 @@ body {
   overflow: hidden; /* opcjonalnie, żeby scroll nie przeszkadzał */
 }
 
-/* Dodaj do swojego pliku CSS */
 .footer {
   position: fixed;
   bottom: 10px;
@@ -122,19 +121,23 @@ body {
 }
 
 .add-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1; /* Kluczowe dla centrowania */
+  vertical-align: middle;
   width: 60px;
   height: 60px;
-  font-size: 30px;
-  font-weight: bold;
-  border: none;
   border-radius: 50%;
   background-color: red;
   color: white;
+  border: none;
   cursor: pointer;
-  line-height: 60px;
-  text-align: center;
   user-select: none;
-  margin-bottom: 15px;
+  padding: 0; /* Usuń ewentualne odstępy */
 }
 
 .add-button:hover {
