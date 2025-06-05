@@ -10,7 +10,7 @@ const API_URL = "https://murzin.onrender.com";
 
 export default function App() {
   const [token, setToken] = useState(() => localStorage.getItem("token") || "");
-  const [login, setLogin] = useState("");
+  const [login, setLogin] = useState(() => localStorage.getItem("login") || "");
   const [password, setPassword] = useState("");
   const [scoreboard, setScoreboard] = useState([]);
   const [language, setLanguage] = useState("PL");
@@ -19,10 +19,11 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
-    if (token) fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(res => res.ok && res.json())
-      .then(setScoreboard)
-      .catch(() => {});
+    if (token)
+      fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(res => res.ok && res.json())
+        .then(setScoreboard)
+        .catch(() => {});
   }, [token]);
 
   useEffect(() => localStorage.setItem("history", JSON.stringify(history)), [history]);
@@ -38,6 +39,7 @@ export default function App() {
         const { token } = await res.json();
         setToken(token);
         localStorage.setItem("token", token);
+        localStorage.setItem("login", login);  // zapis loginu
         setPassword("");
       }
     } catch {}
@@ -46,10 +48,10 @@ export default function App() {
   const logout = () => {
     setToken("");
     localStorage.removeItem("token");
+    localStorage.removeItem("login");  // usunięcie loginu
     setLogin("");
     setPassword("");
     setScoreboard([]);
-    // nie czyścimy historii - zostaje w localStorage i stanie
   };
 
   // Logika do dodawania punktów do tablicy wyników
@@ -61,10 +63,11 @@ export default function App() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ points }),
       });
-      if (res.ok) fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.ok && r.json())
-        .then(setScoreboard)
-        .catch(() => {});
+      if (res.ok)
+        fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
+          .then(r => r.ok && r.json())
+          .then(setScoreboard)
+          .catch(() => {});
     } catch {}
   };
 
@@ -123,7 +126,9 @@ export default function App() {
           <button onClick={logout} className="logout-button">&lt;</button>
 
           <form onSubmit={submitPrompt} className="prompt-input-form" autoComplete="off" spellCheck="false">
-            <div className="prompt-input-icon-left" onClick={() => setShowHistory(v => !v)} style={{ cursor: "pointer" }}><FaSearch size={20} /></div>
+            <div className="prompt-input-icon-left" onClick={() => setShowHistory(v => !v)} style={{ cursor: "pointer" }}>
+              <FaSearch size={20} />
+            </div>
             <input
               type="text"
               value={prompt}

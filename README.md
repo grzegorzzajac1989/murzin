@@ -1,4 +1,4 @@
-<p align="center">Ten tekst będzie wycentrowany.# czomik na wakacjach 🤠
-
+<p align="center"> 
+czomik na wakacjach 🤠
 https://murzing.onrender.com
 </p>
