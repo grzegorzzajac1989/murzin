@@ -7,59 +7,50 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* opcjonalnie, żeby scroll nie przeszkadzał */
+  overflow: hidden;
 }
 
 .logged-in .message.logged-in-only {
   display: none;
 }
 
-.footer {
+.footer, .footer-left, .lang-switcher, .logout-button {
   position: fixed;
-  bottom: 10px;
-  right: 10px;
-  color: white;
-  font-size: 12px;
+  z-index: 1000;
   user-select: none;
   font-family: Arial, sans-serif;
   display: flex;
-  align-items: center; /* pionowe wyśrodkowanie */
-  gap: 10px;
-  height: 28px; /* stała wysokość */
-  line-height: 1;
-  z-index: 1000;
+  align-items: center;
   background: transparent;
-  width: auto; /* usunięte szerokości, by nie rozciągać */
-  justify-content: flex-end;
+  color: white;
 }
 
-/* Nowy element po lewej */
+.footer {
+  bottom: 10px;
+  right: 10px;
+  font-size: 12px;
+  gap: 10px;
+  height: 28px;
+  justify-content: flex-end;
+  width: auto;
+  line-height: 1;
+}
+
 .footer-left {
-  position: fixed;
   bottom: 10px;
   left: 10px;
-  display: flex;
-  align-items: center; /* pionowe wyśrodkowanie */
   gap: 8px;
-  color: #bbb;
   font-size: 14px;
   font-weight: 600;
-  user-select: none;
-  background: transparent;
-  height: 28px; /* taka sama wysokość jak .footer */
+  color: #bbb;
+  height: 28px;
   line-height: 1;
-  z-index: 1000;
 }
 
-/* Reszta stylów bez zmian */
-
 .lang-switcher {
-  position: fixed;
   top: 10px;
   right: 10px;
-  display: flex;
   gap: 6px;
-  z-index: 1000;
 }
 
 .lang-button {
@@ -70,14 +61,12 @@ body {
   border: none;
   background: transparent;
   color: white;
-  box-shadow: none;
   border-radius: 5px;
   transition: box-shadow 0.2s ease, background-color 0.2s ease;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 14px;
-  user-select: none;
 }
 
 .lang-button:hover {
@@ -86,8 +75,21 @@ body {
 
 .lang-button.active {
   box-shadow: 0 0 5px 2px gray;
-  background-color: transparent;
+}
+
+.logout-button {
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+  border: none;
+  border-radius: 5px;
+  background-color: black;
   color: white;
+  cursor: pointer;
+  justify-content: center;
+  align-items: center;
 }
 
 .app-container {
@@ -128,23 +130,6 @@ body {
   background-color: #666;
 }
 
-.logout-button {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  width: 40px;
-  height: 40px;
-  font-size: 20px;
-  border: none;
-  border-radius: 5px;
-  background-color: black;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
 .controls-container {
   display: flex;
   flex-direction: column;
@@ -154,42 +139,50 @@ body {
 }
 
 .add-button {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 2rem;
-  font-weight: bold;
-  text-align: center;
-  line-height: 1; /* Kluczowe dla centrowania */
-  vertical-align: middle;
   width: 60px;
   height: 60px;
+  font-size: 2rem;
+  font-weight: bold;
   border-radius: 50%;
-  background-color: red;
+  background-color: gray;
   color: white;
   border: none;
   cursor: pointer;
   user-select: none;
-  padding: 0; /* Usuń ewentualne odstępy */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  line-height: 1;
 }
 
 .add-button:hover {
-  background-color: #ff3333;
+  background-color: #555;
 }
 
 .scoreboard-container {
-  width: 100%;
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90vw;
+  max-width: 400px;
+  max-height: 40vh;
   background-color: black;
-  border-radius: 10px;
+  border-radius: 10px 10px 0 0;
   padding: 20px;
   box-sizing: border-box;
   text-align: left;
+  overflow-y: auto;
+  z-index: 1000;
+  font-size: calc(12px + 0.5vw);
   margin: 0 auto;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 400px) {
   .scoreboard-container {
-    max-width: 100%;
+    padding: 15px;
+    font-size: 12px;
   }
 }
 
@@ -201,7 +194,6 @@ body {
 .score-entry {
   color: white;
   padding: 5px 0;
-  border-bottom: none;
   display: flex;
   justify-content: space-between;
   gap: 1.5rem;
@@ -217,10 +209,6 @@ body {
   text-align: right;
 }
 
-.score-entry:last-child {
-  border-bottom: none;
-}
-
 .user-name {
   user-select: none;
 }
@@ -234,20 +222,16 @@ body {
   color: white;
   border-radius: 5px;
   transition: box-shadow 0.2s ease, background-color 0.2s ease;
-
   display: flex;
   justify-content: center;
   align-items: center;
-
   font-size: 28px;
   line-height: 1;
   user-select: none;
   padding: 0;
   outline: none;
-
-  /* dodatkowe wyrównanie */
   position: relative;
-  top: -3px; /* przesunięcie w górę */
+  top: -3px;
 }
 
 .hamburger-menu:hover {
@@ -256,7 +240,94 @@ body {
 
 .hamburger-menu:focus,
 .hamburger-menu:active {
-  background-color: transparent; /* wróć do przeźroczystego po kliknięciu/focus */
+  background-color: transparent;
   box-shadow: 0 0 5px 2px gray;
   outline: none;
+}
+
+.prompt-input-form {
+  display: flex;
+  align-items: center;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  padding: 8px 12px;
+  max-width: 500px;
+  width: 100%;
+  margin: 20px auto;
+  box-sizing: border-box;
+}
+
+.prompt-input-icon-left {
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  color: #aaa;
+}
+
+.prompt-input-field {
+  flex-grow: 1;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: Arial, sans-serif;
+}
+
+.prompt-input-icon-right {
+  display: flex;
+  align-items: center;
+  margin-left: 12px;
+  color: #555;
+}
+
+.prompt-input-icon-right svg {
+  opacity: 0.4;
+  cursor: not-allowed;
+  margin-left: 12px;
+}
+
+.prompt-input-icon-right svg:first-child {
+  margin-left: 0;
+}
+
+/* Mikrofon - zawsze aktywny, nieprzygaszony, z kursorem pointer */
+.mic-button {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer !important;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  opacity: 1 !important;
+  transition: color 0.2s ease;
+}
+
+.mic-button svg {
+  cursor: pointer !important;
+  opacity: 1 !important;
+}
+
+@keyframes dropdownFadeSlide {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropdownFadeSlideUp {
+  0% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
