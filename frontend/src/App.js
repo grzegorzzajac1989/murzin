@@ -44,14 +44,15 @@ export default function App() {
   };
 
   const logout = () => {
-  setToken("");
-  localStorage.removeItem("token");
-  setLogin("");
-  setPassword("");
-  setScoreboard([]);
-  // nie czyścimy historii - zostaje w localStorage i stanie
-};
+    setToken("");
+    localStorage.removeItem("token");
+    setLogin("");
+    setPassword("");
+    setScoreboard([]);
+    // nie czyścimy historii - zostaje w localStorage i stanie
+  };
 
+  // Logika do dodawania punktów do tablicy wyników
   const addPoints = async (points) => {
     if (!token) return;
     try {
@@ -84,13 +85,41 @@ export default function App() {
 
       {!token ? (
         <div className="auth-container">
-          <input placeholder={language === "PL" ? "Login" : "Username"} value={login} onChange={e => setLogin(e.target.value)} className="auth-input" />
-          <input type="password" placeholder={language === "PL" ? "Hasło" : "Password"} value={password} onChange={e => setPassword(e.target.value)} className="auth-input" />
+          <input
+            placeholder={language === "PL" ? "Login" : "Username"}
+            value={login}
+            onChange={e => setLogin(e.target.value)}
+            className="auth-input"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                document.querySelector(".auth-input[type='password']")?.focus();
+              }
+            }}
+          />
+          <input
+            type="password"
+            placeholder={language === "PL" ? "Hasło" : "Password"}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="auth-input"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                auth();
+              }
+            }}
+          />
           <button onClick={auth} className="auth-button">{language === "PL" ? "Zaloguj / Zarejestruj" : "Log In / Register"}</button>
         </div>
       ) : (
         <>
-          <button onClick={() => addPoints(1)} className="add-button">+</button>
+          {/* Ukryty przycisk do dodawania punktów */}
+          <button
+            onClick={() => addPoints(1)}
+            className="add-button"
+            style={{ display: "none" }}
+          >
+            +
+          </button>
           <button onClick={logout} className="logout-button">&lt;</button>
 
           <form onSubmit={submitPrompt} className="prompt-input-form" autoComplete="off" spellCheck="false">
