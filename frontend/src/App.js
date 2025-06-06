@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import LanguageSwitcher from "./LanguageSwitcher";
 import MicInput from "./MicInput";
@@ -18,6 +18,8 @@ export default function App() {
   const [history, setHistory] = useState(JSON.parse(localStorage.getItem("history") || "[]"));
   const [showHistory, setShowHistory] = useState(false);
 
+  const promptInputRef = useRef(null);
+
   const updateScoreboard = () => {
     if (token) {
       fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
@@ -29,6 +31,12 @@ export default function App() {
 
   useEffect(updateScoreboard, [token]);
   useEffect(() => localStorage.setItem("history", JSON.stringify(history)), [history]);
+
+  useEffect(() => {
+    if (token && promptInputRef.current) {
+      promptInputRef.current.focus();
+    }
+  }, [token]);
 
   const auth = async () => {
     try {
@@ -87,6 +95,7 @@ export default function App() {
         setPrompt("");
         alert(`Prompt analyzed! You earned ${points} points. Total: ${total}`);
         updateScoreboard();
+        promptInputRef.current?.focus();
       } else {
         alert("Error analyzing prompt.");
       }
@@ -109,6 +118,7 @@ export default function App() {
             onChange={e => setLogin(e.target.value)}
             className="auth-input"
             onKeyDown={e => e.key === "Enter" && document.querySelector(".auth-input[type='password']")?.focus()}
+            autoFocus
           />
           <input
             type="password"
@@ -122,8 +132,11 @@ export default function App() {
         </div>
       ) : (
         <>
-          <button onClick={() => addPoints()} className="add-button" style={{ display: "none" }}>+</button>
-          <button onClick={logout} className="logout-button">&lt;</button>
+          <div className="top-left-bar">
+            <button onClick={logout} className="logout-button" aria-label="Logout">&lt;</button>
+            <button className="hamburger-menu" aria-label="Menu">&#9776;</button>
+            <span className="user-name">{displayName}</span>
+          </div>
 
           <div className="scoreboard-container">
             {scoreboard.length === 0
@@ -144,6 +157,7 @@ export default function App() {
               <FaSearch size={20} />
             </div>
             <input
+              ref={promptInputRef}
               type="text"
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
@@ -156,14 +170,18 @@ export default function App() {
             </div>
           </form>
 
-          {showHistory && <PromptHistory history={history} onSelect={item => { setPrompt(item); setShowHistory(false); }} />}
+          {showHistory && (
+            <PromptHistory
+              history={history}
+              onSelect={item => {
+                setPrompt(item);
+                setShowHistory(false);
+                promptInputRef.current?.focus();
+              }}
+            />
+          )}
         </>
       )}
-
-      <div className="footer-left">
-        <button className="hamburger-menu" aria-label="Menu">&#9776;</button>
-        <span className="user-name">{displayName}</span>
-      </div>
     </div>
   );
 }
