@@ -128,9 +128,10 @@ export default function App() {
           <div className="scoreboard-container">
             {scoreboard.length === 0
               ? <p>{language === "PL" ? "Brak wyników" : "No results"}</p>
-              : scoreboard.map(([user, score]) => (
+              : scoreboard.map(({ user, score }) => (
                 <div key={user} className="score-entry"><span>{user}</span><span>{score}</span></div>
-              ))}
+              ))
+            }
           </div>
 
           <form
@@ -159,11 +160,9 @@ export default function App() {
         </>
       )}
 
-      
-        <div className="footer-left">
-          <button className="hamburger-menu" aria-label="Menu">&#9776;</button>
-          <span className="user-name">{displayName}</span>
-        
+      <div className="footer-left">
+        <button className="hamburger-menu" aria-label="Menu">&#9776;</button>
+        <span className="user-name">{displayName}</span>
       </div>
     </div>
   );
