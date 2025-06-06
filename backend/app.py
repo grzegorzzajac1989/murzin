@@ -4,11 +4,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
 from datetime import datetime, timedelta
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 app = Flask(__name__)
-CORS(app)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_default_secret_key')
+
+# CORS - ustaw origin na frontend, np. https://murzing.onrender.com
+CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http://localhost:3000"]}})
+
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
 
 users, scores = {}, {}
 
@@ -26,7 +29,8 @@ def token_required(role=None):
                     return jsonify({"error": "Unauthorized"}), 403
             except jwt.ExpiredSignatureError:
                 return jsonify({"error": "Token expired"}), 401
-            except Exception:
+            except Exception as e:
+                print("Token decode error:", e)
                 return jsonify({"error": "Token is invalid"}), 401
             return f(user, *args, **kwargs)
         return decorated
@@ -44,19 +48,13 @@ def auth():
         return jsonify({"error": "Missing login or password"}), 400
     if login in users:
         if check_password_hash(users[login]['password_hash'], password):
-            token = jwt.encode(
-                {'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)},
-                app.config['SECRET_KEY'], algorithm="HS256"
-            )
+            token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
             return jsonify({"message": "Logged in", "token": token}), 200
         return jsonify({"error": "Incorrect password"}), 401
-    # Rejestracja nowego użytkownika
+    # New user
     users[login] = {"password_hash": generate_password_hash(password), "role": "user"}
     scores[login] = 0
-    token = jwt.encode(
-        {'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)},
-        app.config['SECRET_KEY'], algorithm="HS256"
-    )
+    token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({"message": "Account created and logged in", "token": token}), 201
 
 @app.route('/add_points', methods=['POST'])
@@ -91,20 +89,26 @@ def set_role(_):
     return jsonify({"message": f"Role of {user} set to {role}"}), 200
 
 @app.route('/analyze_prompt', methods=['POST'])
+@cross_origin(origin=["https://murzing.onrender.com", "http://localhost:3000"])
 @token_required()
 def analyze_prompt(user):
-    data = request.get_json() or {}
-    prompt = data.get('prompt', '').strip()
-    if not prompt:
-        return jsonify({"error": "Prompt is missing"}), 400
+    try:
+        data = request.get_json() or {}
+        prompt = data.get('prompt', '').strip()
+        if not prompt:
+            return jsonify({"error": "Prompt is required"}), 400
 
-    # Przykładowa logika naliczania punktów: 1 punkt za każde 5 znaków prompta, min 1 punkt
-    points = max(1, len(prompt) // 5)
+        # Tu możesz podstawić rzeczywistą analizę prompta,
+        # teraz symulacja:
+        points_earned = len(prompt) % 20 + 1  # punkty od 1 do 20 zależnie od długości prompta
+        scores[user] = scores.get(user, 0) + points_earned
 
-    # Dodaj punkty użytkownikowi
-    scores[user] = scores.get(user, 0) + points
+        message = f"Prompt analyzed! You earned {points_earned} points. Total: {scores[user]}"
+        return jsonify({"message": message, "points": points_earned, "total": scores[user]}), 200
 
-    return jsonify({"points": points, "total": scores[user]}), 200
+    except Exception as e:
+        print("Analyze prompt error:", e)
+        return jsonify({"error": "Error analyzing prompt"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
