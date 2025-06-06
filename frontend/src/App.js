@@ -9,23 +9,25 @@ import "./dropdown.css";
 const API_URL = "https://murzin.onrender.com";
 
 export default function App() {
-  const [token, setToken] = useState(() => localStorage.getItem("token") || "");
-  const [login, setLogin] = useState(() => localStorage.getItem("login") || "");
+  const [token, setToken] = useState(localStorage.getItem("token") || "");
+  const [login, setLogin] = useState(localStorage.getItem("login") || "");
   const [password, setPassword] = useState("");
   const [scoreboard, setScoreboard] = useState([]);
   const [language, setLanguage] = useState("PL");
   const [prompt, setPrompt] = useState("");
-  const [history, setHistory] = useState(() => JSON.parse(localStorage.getItem("history") || "[]"));
+  const [history, setHistory] = useState(JSON.parse(localStorage.getItem("history") || "[]"));
   const [showHistory, setShowHistory] = useState(false);
 
-  useEffect(() => {
-    if (token)
+  const updateScoreboard = () => {
+    if (token) {
       fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.ok && res.json())
         .then(setScoreboard)
         .catch(() => {});
-  }, [token]);
+    }
+  };
 
+  useEffect(updateScoreboard, [token]);
   useEffect(() => localStorage.setItem("history", JSON.stringify(history)), [history]);
 
   const auth = async () => {
@@ -39,8 +41,9 @@ export default function App() {
         const { token } = await res.json();
         setToken(token);
         localStorage.setItem("token", token);
-        localStorage.setItem("login", login);  // zapis loginu
+        localStorage.setItem("login", login);
         setPassword("");
+        updateScoreboard();
       }
     } catch {}
   };
@@ -48,36 +51,47 @@ export default function App() {
   const logout = () => {
     setToken("");
     localStorage.removeItem("token");
-    localStorage.removeItem("login");  // usunięcie loginu
+    localStorage.removeItem("login");
     setLogin("");
     setPassword("");
     setScoreboard([]);
   };
 
-  // Logika do dodawania punktów do tablicy wyników
-  const addPoints = async (points) => {
-    if (!token) return;
-    try {
-      const res = await fetch(`${API_URL}/add_points`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ points }),
-      });
-      if (res.ok)
-        fetch(`${API_URL}/scoreboard`, { headers: { Authorization: `Bearer ${token}` } })
-          .then(r => r.ok && r.json())
-          .then(setScoreboard)
-          .catch(() => {});
-    } catch {}
+  const addPoints = async (points = 1) => {
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/add_points`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ points }),
+        });
+        if (res.ok) updateScoreboard();
+      } catch {}
+    }
   };
 
-  const submitPrompt = (e) => {
+  const submitPrompt = async (e) => {
     e.preventDefault();
     const trimmed = prompt.trim();
     if (!trimmed) return;
-    setHistory(h => [trimmed, ...h.filter(p => p !== trimmed)].slice(0, 5));
-    setPrompt("");
-    setShowHistory(false);
+
+    try {
+      const res = await fetch(`${API_URL}/analyze_prompt`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt: trimmed }),
+      });
+      if (res.ok) {
+        const { points, total } = await res.json();
+        setHistory(h => [trimmed, ...h.filter(p => p !== trimmed)].slice(0, 5));
+        setPrompt("");
+        alert(`Prompt analyzed! You earned ${points} points. Total: ${total}`);
+      } else {
+        alert("Error analyzing prompt.");
+      }
+    } catch {
+      alert("Error analyzing prompt.");
+    }
   };
 
   const displayName = login || (language === "PL" ? "Gość" : "Guest");
@@ -93,11 +107,7 @@ export default function App() {
             value={login}
             onChange={e => setLogin(e.target.value)}
             className="auth-input"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                document.querySelector(".auth-input[type='password']")?.focus();
-              }
-            }}
+            onKeyDown={e => e.key === "Enter" && document.querySelector(".auth-input[type='password']")?.focus()}
           />
           <input
             type="password"
@@ -105,24 +115,13 @@ export default function App() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="auth-input"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                auth();
-              }
-            }}
+            onKeyDown={e => e.key === "Enter" && auth()}
           />
           <button onClick={auth} className="auth-button">{language === "PL" ? "Zaloguj / Zarejestruj" : "Log In / Register"}</button>
         </div>
       ) : (
         <>
-          {/* Ukryty przycisk do dodawania punktów */}
-          <button
-            onClick={() => addPoints(1)}
-            className="add-button"
-            style={{ display: "none" }}
-          >
-            +
-          </button>
+          <button onClick={() => addPoints()} className="add-button" style={{ display: "none" }}>+</button>
           <button onClick={logout} className="logout-button">&lt;</button>
 
           <form onSubmit={submitPrompt} className="prompt-input-form" autoComplete="off" spellCheck="false">
