@@ -86,6 +86,7 @@ export default function App() {
         setHistory(h => [trimmed, ...h.filter(p => p !== trimmed)].slice(0, 5));
         setPrompt("");
         alert(`Prompt analyzed! You earned ${points} points. Total: ${total}`);
+        updateScoreboard();
       } else {
         alert("Error analyzing prompt.");
       }
@@ -124,7 +125,20 @@ export default function App() {
           <button onClick={() => addPoints()} className="add-button" style={{ display: "none" }}>+</button>
           <button onClick={logout} className="logout-button">&lt;</button>
 
-          <form onSubmit={submitPrompt} className="prompt-input-form" autoComplete="off" spellCheck="false">
+          <div className="scoreboard-container">
+            {scoreboard.length === 0
+              ? <p>{language === "PL" ? "Brak wyników" : "No results"}</p>
+              : scoreboard.map(([user, score]) => (
+                <div key={user} className="score-entry"><span>{user}</span><span>{score}</span></div>
+              ))}
+          </div>
+
+          <form
+            onSubmit={submitPrompt}
+            className="prompt-input-form bottom-centered"
+            autoComplete="off"
+            spellCheck="false"
+          >
             <div className="prompt-input-icon-left" onClick={() => setShowHistory(v => !v)} style={{ cursor: "pointer" }}>
               <FaSearch size={20} />
             </div>
@@ -142,23 +156,14 @@ export default function App() {
           </form>
 
           {showHistory && <PromptHistory history={history} onSelect={item => { setPrompt(item); setShowHistory(false); }} />}
-
-          <div className="scoreboard-container">
-            {scoreboard.length === 0
-              ? <p>{language === "PL" ? "Brak wyników" : "No results"}</p>
-              : scoreboard.map(([user, score]) => (
-                <div key={user} className="score-entry"><span>{user}</span><span>{score}</span></div>
-              ))}
-          </div>
         </>
       )}
 
-      <div className="footer">
-        © 2025 Czomik & Czomik
+      
         <div className="footer-left">
           <button className="hamburger-menu" aria-label="Menu">&#9776;</button>
           <span className="user-name">{displayName}</span>
-        </div>
+        
       </div>
     </div>
   );

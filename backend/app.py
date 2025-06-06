@@ -7,28 +7,24 @@ from functools import wraps
 from datetime import datetime, timedelta
 from flask_cors import CORS, cross_origin
 from transformers import pipeline
+import threading
+import math
 
-# Initialize Flask app
 app = Flask(__name__)
-
-# CORS - ustaw origin na frontend, np. https://murzing.onrender.com
 CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http://localhost:3000"]}})
-
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
 
-# Load TinyBERT model for text classification or similarity matching
 similarity_pipeline = pipeline("feature-extraction", model="prajjwal1/bert-tiny")
 
 users, scores = {}, {}
+scores_lock = threading.Lock()
 
-# Preset promptów z przypisaną punktacją za rzadkość
 presets = [
     {"prompt": "murzin na rowerze jadacy bez trzymanki", "points": 50},
     {"prompt": "murzin w samochodzie", "points": 10},
     {"prompt": "murzin w słuchawkach z mikrofonem", "points": 30},
 ]
 
-# Dodatkowe krótkie frazy z punktacją
 short_phrases = {
     "murzin": 1,
     "gang murzinow": 5,
@@ -38,40 +34,48 @@ short_phrases = {
 }
 
 def normalize_text(text):
-    # Zamienia na małe litery i usuwa polskie znaki (ogonek)
     text = text.lower()
     text = unicodedata.normalize('NFD', text)
-    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
-    return text
+    return ''.join(c for c in text if unicodedata.category(c) != 'Mn')
 
-def get_tinybert_similarity(prompt, target):
-    # Compute similarity between two text prompts using TinyBERT
-    prompt_embedding = similarity_pipeline(prompt)[0]
-    target_embedding = similarity_pipeline(target)[0]
-    similarity = sum(p * t for p, t in zip(prompt_embedding[0], target_embedding[0]))
-    return similarity
+def get_embedding(text):
+    emb = similarity_pipeline(text)[0]
+    # Embedding shape: [1, seq_len, hidden_dim], take mean over tokens
+    emb_vector = [sum(dim)/len(dim) for dim in zip(*emb)]
+    return emb_vector
+
+def cosine_similarity(vec1, vec2):
+    dot = sum(a*b for a,b in zip(vec1, vec2))
+    norm1 = math.sqrt(sum(a*a for a in vec1))
+    norm2 = math.sqrt(sum(b*b for b in vec2))
+    if norm1 == 0 or norm2 == 0:
+        return 0
+    return dot / (norm1 * norm2)
+
+# Precompute embeddings for presets once
+for preset in presets:
+    preset['norm_prompt'] = normalize_text(preset['prompt'])
+    preset['embedding'] = get_embedding(preset['norm_prompt'])
 
 def get_preset_points(prompt):
     prompt_norm = normalize_text(prompt)
     total_points = 0
 
-    # Check for exact matches in presets
+    # Check exact substring matches
     for preset in presets:
-        preset_norm = normalize_text(preset["prompt"])
-        if preset_norm in prompt_norm:
-            total_points += preset["points"]
+        if preset['norm_prompt'] in prompt_norm:
+            total_points += preset['points']
 
-    # Check for matches in short phrases
     for phrase, pts in short_phrases.items():
-        phrase_norm = normalize_text(phrase)
-        if phrase_norm in prompt_norm:
+        if normalize_text(phrase) in prompt_norm:
             total_points += pts
 
-    # Use TinyBERT for additional similarity-based scoring
+    # Embedding similarity check
+    prompt_emb = get_embedding(prompt_norm)
     for preset in presets:
-        similarity = get_tinybert_similarity(prompt_norm, normalize_text(preset["prompt"]))
-        if similarity > 0.8:  # Threshold for similarity
-            total_points += preset["points"]
+        sim = cosine_similarity(prompt_emb, preset['embedding'])
+        if sim > 0.8:
+            total_points += preset['points']
 
     return total_points
 
@@ -84,7 +88,8 @@ def token_required(role=None):
                 return jsonify({"error": "Token is missing"}), 401
             try:
                 data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-                user, user_role = data['user'], users.get(data['user'], {}).get('role')
+                user = data['user']
+                user_role = users.get(user, {}).get('role')
                 if user not in users or (role and user_role != role):
                     return jsonify({"error": "Unauthorized"}), 403
             except jwt.ExpiredSignatureError:
@@ -111,9 +116,9 @@ def auth():
             token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
             return jsonify({"message": "Logged in", "token": token}), 200
         return jsonify({"error": "Incorrect password"}), 401
-    # New user
     users[login] = {"password_hash": generate_password_hash(password), "role": "user"}
-    scores[login] = 0
+    with scores_lock:
+        scores[login] = 0
     token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({"message": "Account created and logged in", "token": token}), 201
 
@@ -124,18 +129,22 @@ def add_points(user):
     target, points = data.get('user', user), data.get('points', 1)
     if target not in users or (target != user and users[user]['role'] != 'admin'):
         return jsonify({"error": "Unauthorized or user not found"}), 403
-    scores[target] = scores.get(target, 0) + points
-    return jsonify({"message": f"Added {points} points for {target}", "total": scores[target]}), 200
+    with scores_lock:
+        scores[target] = scores.get(target, 0) + points
+        total = scores[target]
+    return jsonify({"message": f"Added {points} points for {target}", "total": total}), 200
 
 @app.route('/scoreboard', methods=['GET'])
 def scoreboard():
-    sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    return jsonify(sorted_scores), 200
+    with scores_lock:
+        sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    return jsonify([{"user": u, "score": s} for u, s in sorted_scores]), 200
 
 @app.route('/reset', methods=['POST'])
 @token_required(role='admin')
 def reset(_):
-    scores.clear()
+    with scores_lock:
+        scores.clear()
     return jsonify({"message": "Scores reset"}), 200
 
 @app.route('/set_role', methods=['POST'])
@@ -159,10 +168,12 @@ def analyze_prompt(user):
             return jsonify({"error": "Prompt is required"}), 400
 
         points_earned = get_preset_points(prompt)
-        scores[user] = scores.get(user, 0) + points_earned
+        with scores_lock:
+            scores[user] = scores.get(user, 0) + points_earned
+            total = scores[user]
 
-        message = f"Prompt analyzed! You earned {points_earned} points. Total: {scores[user]}"
-        return jsonify({"message": message, "points": points_earned, "total": scores[user]}), 200
+        message = f"Prompt analyzed! You earned {points_earned} points. Total: {total}"
+        return jsonify({"message": message, "points": points_earned, "total": total}), 200
 
     except Exception as e:
         print("Analyze prompt error:", e)
