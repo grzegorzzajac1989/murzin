@@ -4,12 +4,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
 from datetime import datetime, timedelta
-from flask_cors import CORS, cross_origin
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # globalna obsługa CORS
-
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'supersecretkey')  # na potrzeby testu warto ustawić domyślnie
+CORS(app)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your_default_secret_key')
 
 users, scores = {}, {}
 
@@ -38,7 +37,6 @@ def home():
     return "API działa", 200
 
 @app.route('/auth', methods=['POST'])
-@cross_origin()
 def auth():
     data = request.get_json() or {}
     login, password = data.get('login'), data.get('password')
@@ -46,16 +44,22 @@ def auth():
         return jsonify({"error": "Missing login or password"}), 400
     if login in users:
         if check_password_hash(users[login]['password_hash'], password):
-            token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
+            token = jwt.encode(
+                {'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)},
+                app.config['SECRET_KEY'], algorithm="HS256"
+            )
             return jsonify({"message": "Logged in", "token": token}), 200
         return jsonify({"error": "Incorrect password"}), 401
+    # Rejestracja nowego użytkownika
     users[login] = {"password_hash": generate_password_hash(password), "role": "user"}
     scores[login] = 0
-    token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
+    token = jwt.encode(
+        {'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)},
+        app.config['SECRET_KEY'], algorithm="HS256"
+    )
     return jsonify({"message": "Account created and logged in", "token": token}), 201
 
 @app.route('/add_points', methods=['POST'])
-@cross_origin()
 @token_required()
 def add_points(user):
     data = request.get_json() or {}
@@ -66,20 +70,17 @@ def add_points(user):
     return jsonify({"message": f"Added {points} points for {target}", "total": scores[target]}), 200
 
 @app.route('/scoreboard', methods=['GET'])
-@cross_origin()
 def scoreboard():
     sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return jsonify(sorted_scores), 200
 
 @app.route('/reset', methods=['POST'])
-@cross_origin()
 @token_required(role='admin')
 def reset(_):
     scores.clear()
     return jsonify({"message": "Scores reset"}), 200
 
 @app.route('/set_role', methods=['POST'])
-@cross_origin()
 @token_required(role='admin')
 def set_role(_):
     data = request.get_json() or {}
@@ -89,34 +90,21 @@ def set_role(_):
     users[user]['role'] = role
     return jsonify({"message": f"Role of {user} set to {role}"}), 200
 
-@app.route('/analyze_prompt', methods=['POST', 'OPTIONS'])
-@cross_origin()
-def analyze_prompt():
-    if request.method == 'OPTIONS':
-        return '', 200  # preflight CORS
-
+@app.route('/analyze_prompt', methods=['POST'])
+@token_required()
+def analyze_prompt(user):
     data = request.get_json() or {}
-    prompt = data.get('prompt')
+    prompt = data.get('prompt', '').strip()
     if not prompt:
         return jsonify({"error": "Prompt is missing"}), 400
 
-    # Prosta logika przyznawania punktów na podstawie długości prompta
-    points = len(prompt) % 10 + 1
+    # Przykładowa logika naliczania punktów: 1 punkt za każde 5 znaków prompta, min 1 punkt
+    points = max(1, len(prompt) // 5)
 
-    # Zaktualizuj wynik użytkownika jeśli jest token
-    token = request.headers.get('Authorization', '').replace('Bearer ', '')
-    total = points
-    if token:
-        try:
-            data_token = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            user = data_token.get('user')
-            if user in users:
-                scores[user] = scores.get(user, 0) + points
-                total = scores[user]
-        except Exception:
-            pass
+    # Dodaj punkty użytkownikowi
+    scores[user] = scores.get(user, 0) + points
 
-    return jsonify({"points": points, "total": total}), 200
+    return jsonify({"points": points, "total": scores[user]}), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
