@@ -1,11 +1,14 @@
 import os
+import unicodedata
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from functools import wraps
 from datetime import datetime, timedelta
 from flask_cors import CORS, cross_origin
+from transformers import pipeline
 
+# Initialize Flask app
 app = Flask(__name__)
 
 # CORS - ustaw origin na frontend, np. https://murzing.onrender.com
@@ -13,7 +16,64 @@ CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http:/
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
 
+# Load TinyBERT model for text classification or similarity matching
+similarity_pipeline = pipeline("feature-extraction", model="prajjwal1/bert-tiny")
+
 users, scores = {}, {}
+
+# Preset promptów z przypisaną punktacją za rzadkość
+presets = [
+    {"prompt": "murzin na rowerze jadacy bez trzymanki", "points": 50},
+    {"prompt": "murzin w samochodzie", "points": 10},
+    {"prompt": "murzin w słuchawkach z mikrofonem", "points": 30},
+]
+
+# Dodatkowe krótkie frazy z punktacją
+short_phrases = {
+    "murzin": 1,
+    "gang murzinow": 5,
+    "goraca murzinka": 10,
+    "wysoki murzin": 2,
+    "murzin karzel": 2,
+}
+
+def normalize_text(text):
+    # Zamienia na małe litery i usuwa polskie znaki (ogonek)
+    text = text.lower()
+    text = unicodedata.normalize('NFD', text)
+    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    return text
+
+def get_tinybert_similarity(prompt, target):
+    # Compute similarity between two text prompts using TinyBERT
+    prompt_embedding = similarity_pipeline(prompt)[0]
+    target_embedding = similarity_pipeline(target)[0]
+    similarity = sum(p * t for p, t in zip(prompt_embedding[0], target_embedding[0]))
+    return similarity
+
+def get_preset_points(prompt):
+    prompt_norm = normalize_text(prompt)
+    total_points = 0
+
+    # Check for exact matches in presets
+    for preset in presets:
+        preset_norm = normalize_text(preset["prompt"])
+        if preset_norm in prompt_norm:
+            total_points += preset["points"]
+
+    # Check for matches in short phrases
+    for phrase, pts in short_phrases.items():
+        phrase_norm = normalize_text(phrase)
+        if phrase_norm in prompt_norm:
+            total_points += pts
+
+    # Use TinyBERT for additional similarity-based scoring
+    for preset in presets:
+        similarity = get_tinybert_similarity(prompt_norm, normalize_text(preset["prompt"]))
+        if similarity > 0.8:  # Threshold for similarity
+            total_points += preset["points"]
+
+    return total_points
 
 def token_required(role=None):
     def decorator(f):
@@ -98,9 +158,7 @@ def analyze_prompt(user):
         if not prompt:
             return jsonify({"error": "Prompt is required"}), 400
 
-        # Tu możesz podstawić rzeczywistą analizę prompta,
-        # teraz symulacja:
-        points_earned = len(prompt) % 20 + 1  # punkty od 1 do 20 zależnie od długości prompta
+        points_earned = get_preset_points(prompt)
         scores[user] = scores.get(user, 0) + points_earned
 
         message = f"Prompt analyzed! You earned {points_earned} points. Total: {scores[user]}"
