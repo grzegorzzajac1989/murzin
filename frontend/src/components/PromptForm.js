@@ -14,6 +14,7 @@ export default function PromptForm({
   showHistory,
   language,
   onSelectHistory,
+  loading, // Nowy prop
 }) {
   const containerRef = useRef(null);
   const promptInputRef = useRef(null);
@@ -50,7 +51,6 @@ export default function PromptForm({
     if (typeof submitPrompt === "function") {
       await submitPrompt();
     }
-    // Po zakończeniu submitu wymuszamy zamknięcie historii
     setShowHistory(false);
   };
 
@@ -76,18 +76,25 @@ export default function PromptForm({
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={language === "PL" ? "Wpisz prompt..." : "Enter prompt..."}
           className="prompt-input-field"
+          disabled={loading}
         />
         <div className="prompt-input-icon-right">
-          <MicInput
-            language={language}
-            onTranscript={(text) =>
-              setPrompt((p) => (p ? `${p} ${text}` : text))
-            }
-          />
-          <FaRegImage
-            size={20}
-            style={{ opacity: 0.4, cursor: "not-allowed", marginLeft: 12 }}
-          />
+          {loading ? (
+            <div className="spinner-inline" />
+          ) : (
+            <>
+              <MicInput
+                language={language}
+                onTranscript={(text) =>
+                  setPrompt((p) => (p ? `${p} ${text}` : text))
+                }
+              />
+              <FaRegImage
+                size={20}
+                style={{ opacity: 0.4, cursor: "not-allowed", marginLeft: 12 }}
+              />
+            </>
+          )}
         </div>
       </form>
 

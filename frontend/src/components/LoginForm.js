@@ -1,37 +1,55 @@
-// src/components/LoginForm.js
 import React from "react";
 import "../styles/LoginForm.css";
 
-export default function LoginForm({ login, setLogin, password, setPassword, onSubmit, language }) {
+export default function PromptForm({
+  token,
+  prompt,
+  setPrompt,
+  submitPrompt,
+  showHistory,
+  setShowHistory,
+  history,
+  onSelectHistory,
+  language,
+  loading,
+}) {
   return (
-    <form
-      className="login-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
-      autoComplete="off"
-      spellCheck="false"
-    >
-      <input
-        type="text"
-        value={login}
-        onChange={(e) => setLogin(e.target.value)}
-        placeholder={language === "PL" ? "Login" : "Login"}
-        required
-        className="login-input"
+    <div className="prompt-form-container">
+      <textarea
+        placeholder={
+          language === "PL"
+            ? "Wpisz prompt i naciśnij Wyślij"
+            : "Type prompt and press Send"
+        }
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        onFocus={() => setShowHistory(false)}
+        disabled={!token || loading}
+        className="prompt-textarea"
       />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder={language === "PL" ? "Hasło" : "Password"}
-        required
-        className="login-input"
-      />
-      <button type="submit" className="login-button">
-        {language === "PL" ? "Zaloguj" : "Login"}
+
+      {showHistory && history.length > 0 && (
+        <div className="prompt-history">
+          {history.map((item, index) => (
+            <div
+              key={index}
+              className="history-item"
+              onClick={() => onSelectHistory(item)}
+            >
+              {item}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={submitPrompt}
+        disabled={loading || !prompt.trim()}
+        className="submit-button"
+      >
+        {language === "PL" ? "Wyślij" : "Send"}
+        {loading && <span className="spinner" />}
       </button>
-    </form>
+    </div>
   );
 }

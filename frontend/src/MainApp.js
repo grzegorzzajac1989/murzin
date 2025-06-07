@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./styles/App.css";
 import Header from "./components/Header/Header";
-import Auth from "./components/Auth";
 import Scoreboard from "./components/Scoreboard";
 import PromptForm from "./components/PromptForm";
 
 const API_URL = "https://murzin.onrender.com";
 
-export default function MainApp() {
-  const [token, setToken] = useState(localStorage.getItem("token") || "");
-  const [login, setLogin] = useState(localStorage.getItem("login") || "");
-  const [password, setPassword] = useState("");
+export default function MainApp({ token, login, onLogin, logout }) {
   const [scoreboard, setScoreboard] = useState([]);
   const [language, setLanguage] = useState("PL");
   const [prompt, setPrompt] = useState("");
@@ -18,6 +14,7 @@ export default function MainApp() {
     JSON.parse(localStorage.getItem("history") || "[]")
   );
   const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
@@ -42,47 +39,11 @@ export default function MainApp() {
     localStorage.setItem("history", JSON.stringify(history));
   }, [history]);
 
-  const logout = () => {
-    setToken("");
-    setLogin("");
-    localStorage.removeItem("token");
-    localStorage.removeItem("login");
-    setScoreboard([]);
-  };
-
-  const auth = async () => {
-    try {
-      const res = await fetch(`${API_URL}/auth`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login, password }),
-      });
-      if (res.ok) {
-        const { token } = await res.json();
-        setToken(token);
-        localStorage.setItem("token", token);
-        localStorage.setItem("login", login);
-        setPassword("");
-      } else {
-        alert(
-          language === "PL"
-            ? "Błąd logowania. Sprawdź dane."
-            : "Login failed. Check your credentials."
-        );
-      }
-    } catch {
-      alert(
-        language === "PL"
-          ? "Błąd sieci. Spróbuj ponownie."
-          : "Network error. Try again."
-      );
-    }
-  };
-
   const submitPrompt = async () => {
     const trimmed = prompt.trim();
     if (!trimmed) return;
 
+    setLoading(true);
     try {
       const res = await fetch(`${API_URL}/analyze_prompt`, {
         method: "POST",
@@ -106,66 +67,64 @@ export default function MainApp() {
       if (res.ok) {
         const { points, total } = await res.json();
         setHistory((h) => {
-          const newHistory = [trimmed, ...h.filter((p) => p !== trimmed)].slice(
-            0,
-            5
-          );
+          const newHistory = [trimmed, ...h.filter((p) => p !== trimmed)].slice(0, 5);
           return newHistory;
         });
         setPrompt("");
-        setShowHistory(true);
         alert(
           language === "PL"
             ? `Prompt przeanalizowany! Zdobyłeś ${points} punktów. Razem: ${total}`
             : `Prompt analyzed! You earned ${points} points. Total: ${total}`
         );
+
+        // Odśwież scoreboard po udanym wysłaniu
+        const scoreboardRes = await fetch(`${API_URL}/scoreboard`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (scoreboardRes.ok) {
+          const updatedScoreboard = await scoreboardRes.json();
+          setScoreboard(updatedScoreboard);
+        }
       } else {
-        alert(language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt.");
+        alert(
+          language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt."
+        );
       }
     } catch {
-      alert(language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt.");
+      alert(
+        language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt."
+      );
+    } finally {
+      setShowHistory(true); // Przenieś tutaj, aby uniknąć szybkiego zamknięcia
+      setLoading(false);
     }
   };
 
   return (
     <div className={`app-container${token ? " logged-in" : ""}`}>
-      {token && (
-        <Header
-          language={language}
-          onLanguageChange={setLanguage}
-          onLogout={logout}
-          isLoggedIn={!!token}
-        />
-      )}
+      <Header
+        language={language}
+        onLanguageChange={setLanguage}
+        onLogout={logout}
+        isLoggedIn={!!token}
+      />
 
-      {!token ? (
-        <Auth
-          login={login}
-          setLogin={setLogin}
-          password={password}
-          setPassword={setPassword}
-          auth={auth}
-          language={language}
-        />
-      ) : (
-        <>
-          <Scoreboard scoreboard={scoreboard} language={language} />
-          <PromptForm
-            token={token}
-            prompt={prompt}
-            setPrompt={setPrompt}
-            submitPrompt={submitPrompt}
-            showHistory={showHistory}
-            setShowHistory={setShowHistory}
-            history={history}
-            onSelectHistory={(item) => {
-              setPrompt(item);
-              setShowHistory(false);
-            }}
-            language={language}
-          />
-        </>
-      )}
+      <Scoreboard scoreboard={scoreboard} language={language} />
+      <PromptForm
+        token={token}
+        prompt={prompt}
+        setPrompt={setPrompt}
+        submitPrompt={submitPrompt}
+        showHistory={showHistory}
+        setShowHistory={setShowHistory}
+        history={history}
+        onSelectHistory={(item) => {
+          setPrompt(item);
+          setShowHistory(false);
+        }}
+        language={language}
+        loading={loading}
+      />
     </div>
   );
 }

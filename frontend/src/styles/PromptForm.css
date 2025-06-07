@@ -56,3 +56,24 @@
   cursor: not-allowed;
   opacity: 0.4;
 }
+
+.submit-button {
+  position: relative;
+  padding-right: 30px; /* miejsce na spinner */
+}
+
+.spinner-inline {
+  display: inline-block;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #007bff; /* wyrazisty niebieski */
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
