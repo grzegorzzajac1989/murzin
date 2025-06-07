@@ -150,3 +150,20 @@
     box-shadow: 0 0 24px #60e0e0, inset 0 0 24px rgba(160, 80, 160, 0.5);
   }
 }
+
+@media (max-width: 480px) {
+  .auth-panel {
+    width: 90vw;
+    padding: 32px 24px;
+  }
+
+  .auth-input {
+    padding: 14px 16px;
+    font-size: 1rem;
+  }
+
+  .auth-button {
+    padding: 16px 0;
+    font-size: 1rem;
+  }
+}

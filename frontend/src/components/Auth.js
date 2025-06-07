@@ -14,9 +14,12 @@ export default function Auth({
   const passwordInputRef = useRef(null);
 
   useEffect(() => {
-    if (loginInputRef.current) {
-      loginInputRef.current.focus();
-    }
+    const timer = setTimeout(() => {
+      if (loginInputRef.current) {
+        loginInputRef.current.focus();
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -33,7 +36,6 @@ export default function Auth({
             }
           }}
           className="auth-input"
-          autoFocus
           disabled={loading}
         />
         <input
