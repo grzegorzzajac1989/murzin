@@ -14,13 +14,10 @@ export default function Auth({
   const passwordInputRef = useRef(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (loginInputRef.current) {
-        loginInputRef.current.focus();
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
+    if (loginInputRef.current && !loading) {
+      loginInputRef.current.focus();
+    }
+  }, [loading]);
 
   return (
     <div className="auth-container">
