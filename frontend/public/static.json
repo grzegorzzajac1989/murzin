@@ -1,0 +1,16 @@
+{
+  "routes": [
+    {
+      "source": "/app/*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
+  ]
+}
