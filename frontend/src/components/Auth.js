@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import "../styles/Auth.css";
 
 export default function Auth({
@@ -12,19 +12,35 @@ export default function Auth({
 }) {
   const loginInputRef = useRef(null);
   const passwordInputRef = useRef(null);
+  const [panelHeight, setPanelHeight] = useState("auto");
 
   useEffect(() => {
     if (loginInputRef.current && !loading) {
-      const timer = setTimeout(() => {
-        loginInputRef.current.focus();
-      }, 100);
-      return () => clearTimeout(timer);
+      loginInputRef.current.focus();
     }
   }, [loading]);
 
+  useEffect(() => {
+    const adjustHeight = () => {
+      const windowHeight = window.innerHeight; // Aktualna wysokość okna
+      const adjustedHeight = windowHeight * 0.6; // Panel zajmuje 60% ekranu
+      setPanelHeight(`${adjustedHeight}px`);
+    };
+
+    adjustHeight();
+    window.addEventListener("resize", adjustHeight);
+
+    return () => {
+      window.removeEventListener("resize", adjustHeight);
+    };
+  }, []);
+
   return (
     <div className="auth-container">
-      <div className="auth-panel">
+      <div
+        className="auth-panel"
+        style={{ height: panelHeight }}
+      >
         <input
           ref={loginInputRef}
           placeholder={language === "PL" ? "Login" : "Username"}
