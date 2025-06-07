@@ -15,7 +15,10 @@ export default function Auth({
 
   useEffect(() => {
     if (loginInputRef.current && !loading) {
-      loginInputRef.current.focus();
+      const timer = setTimeout(() => {
+        loginInputRef.current.focus();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [loading]);
 
