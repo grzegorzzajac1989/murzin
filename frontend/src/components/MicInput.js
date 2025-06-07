@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { FaMicrophone } from "react-icons/fa";
+import styles from '../styles/MicInput.module.css';
 
 export default function MicInput({ language, onTranscript }) {
   const [isListening, setIsListening] = useState(false);
@@ -39,7 +40,7 @@ export default function MicInput({ language, onTranscript }) {
     <button
       type="button"
       onClick={toggleListening}
-      className={`mic-button${isListening ? " listening" : ""}`}
+      className={`${styles.micButton} ${isListening ? styles.listening : ""}`}
       title={isListening ? (language === "PL" ? "Nagrywanie..." : "Listening...") : (language === "PL" ? "Włącz mikrofon" : "Start microphone")}
       aria-label="Microphone"
     >

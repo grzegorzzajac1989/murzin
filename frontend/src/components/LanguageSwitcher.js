@@ -1,4 +1,5 @@
 import React from "react";
+import "../styles/LanguageSwitcher.css";
 
 export default function LanguageSwitcher({ activeLang, onLanguageChange }) {
   return (

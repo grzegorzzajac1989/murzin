@@ -1,0 +1,590 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "import React, { useState } from \"react\";\n\nconst API_URL = \"https://murzin.onrender.com\";\n\nexport default function LoginPage({ onLogin }) {\n  const [login, setLogin] = useState(\"\");\n  const [password, setPassword] = useState(\"\");\n\n  const auth = async () => {\n    try {\n      const res = await fetch(`${API_URL}/auth`, {\n        method: \"POST\",\n        headers: { \"Content-Type\": \"application/json\" },\n        body: JSON.stringify({ login, password }),\n      });\n      if (res.ok) {\n        const { token } = await res.json();\n        onLogin(token, login);\n        setPassword(\"\");\n      } else {\n        alert(\"Błąd logowania. Sprawdź dane.\");\n      }\n    } catch {\n      alert(\"Błąd sieci. Spróbuj ponownie.\");\n    }\n  };\n\n  return (\n    <form\n      onSubmit={(e) => {\n        e.preventDefault();\n        auth();\n      }}\n    >\n      <input\n        value={login}\n        onChange={(e) => setLogin(e.target.value)}\n        placeholder=\"Login\"\n        required\n      />\n      <input\n        type=\"password\"\n        value={password}\n        onChange={(e) => setPassword(e.target.value)}\n        placeholder=\"Hasło\"\n        required\n      />\n      <button type=\"submit\">Zaloguj</button>\n    </form>\n  );\n}",
+			"file": "components/LoginPage.js",
+			"file_size": 1210,
+			"file_write_time": 133937762025028822,
+			"settings":
+			{
+				"buffer_size": 1203,
+				"encoding": "UTF-8",
+				"line_ending": "Unix",
+				"name": "import React, { useState } from \"react\";"
+			},
+			"undo_stack":
+			[
+				[
+					3,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAswQAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"contents": "import React, { useState, useEffect } from \"react\";\nimport { Routes, Route, Link, Navigate } from \"react-router-dom\";\nimport Scoreboard from \"./Scoreboard\";\nimport PromptForm from \"./PromptForm\";\n\nconst API_URL = \"https://murzin.onrender.com\";\n\nexport default function MainApp({ token, logout, login }) {\n  const [scoreboard, setScoreboard] = useState([]);\n  const [language, setLanguage] = useState(\"PL\");\n  const [prompt, setPrompt] = useState(\"\");\n  const [history, setHistory] = useState(JSON.parse(localStorage.getItem(\"history\") || \"[]\"));\n  const [showHistory, setShowHistory] = useState(false);\n\n  useEffect(() => {\n    if (token) {\n      fetch(`${API_URL}/scoreboard`, {\n        headers: { Authorization: `Bearer ${token}` },\n      })\n        .then((res) => {\n          if (res.status === 401) {\n            logout();\n            return null;\n          }\n          return res.ok ? res.json() : null;\n        })\n        .then((data) => {\n          if (data) setScoreboard(data);\n        })\n        .catch(() => {});\n    }\n  }, [token]);\n\n  useEffect(() => {\n    localStorage.setItem(\"history\", JSON.stringify(history));\n  }, [history]);\n\n  const submitPrompt = async () => {\n    const trimmed = prompt.trim();\n    if (!trimmed) return;\n\n    try {\n      const res = await fetch(`${API_URL}/analyze_prompt`, {\n        method: \"POST\",\n        headers: {\n          \"Content-Type\": \"application/json\",\n          Authorization: `Bearer ${token}`,\n        },\n        body: JSON.stringify({ prompt: trimmed }),\n      });\n\n      if (res.status === 401) {\n        alert(\"Brak autoryzacji. Zaloguj się ponownie.\");\n        logout();\n        return;\n      }\n\n      if (res.ok) {\n        const { points, total } = await res.json();\n        setHistory((h) => {\n          const newHistory = [trimmed, ...h.filter((p) => p !== trimmed)].slice(0, 5);\n          return newHistory;\n        });\n        setPrompt(\"\");\n        setShowHistory(true);\n        alert(`Prompt przeanalizowany! Zdobyłeś ${points} punktów. Razem: ${total}`);\n      } else {\n        alert(\"Błąd analizy prompta.\");\n      }\n    } catch {\n      alert(\"Błąd analizy prompta.\");\n    }\n  };\n\n  return (\n    <div>\n      <button onClick={logout}>Wyloguj</button>\n      <nav>\n        <Link to=\"scoreboard\">Tabela</Link> | <Link to=\"prompt\">Prompt</Link>\n      </nav>\n\n      <Routes>\n        <Route path=\"scoreboard\" element={<Scoreboard scoreboard={scoreboard} language={language} />} />\n        <Route\n          path=\"prompt\"\n          element={\n            <PromptForm\n              token={token}\n              prompt={prompt}\n              setPrompt={setPrompt}\n              submitPrompt={submitPrompt}\n              showHistory={showHistory}\n              setShowHistory={setShowHistory}\n              history={history}\n              onSelectHistory={(item) => {\n                setPrompt(item);\n                setShowHistory(false);\n              }}\n              language={language}\n            />\n          }\n        />\n        <Route path=\"*\" element={<Navigate to=\"prompt\" />} />\n      </Routes>\n    </div>\n  );\n}",
+			"file": "components/MainApp.js",
+			"file_size": 3086,
+			"file_write_time": 133937765966725789,
+			"redo_stack":
+			[
+				[
+					9,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAABgwAAAAAAACxEQAAaW1wb3J0IFJlYWN0LCB7IHVzZVN0YXRlLCB1c2VFZmZlY3QgfSBmcm9tICJyZWFjdCI7CmltcG9ydCAiLi9zdHlsZXMvQXBwLmNzcyI7CmltcG9ydCBMYW5ndWFnZVN3aXRjaGVyIGZyb20gIi4vY29tcG9uZW50cy9MYW5ndWFnZVN3aXRjaGVyIjsKaW1wb3J0IEF1dGggZnJvbSAiLi9jb21wb25lbnRzL0F1dGgiOyAgLy8gbW/FvGUganXFvCBuaWVwb3RyemVibmUsIGplxZtsaSBMb2dpblBhZ2U/CmltcG9ydCBTY29yZWJvYXJkIGZyb20gIi4vY29tcG9uZW50cy9TY29yZWJvYXJkIjsKaW1wb3J0IFByb21wdEZvcm0gZnJvbSAiLi9jb21wb25lbnRzL1Byb21wdEZvcm0iOwoKY29uc3QgQVBJX1VSTCA9ICJodHRwczovL211cnppbi5vbnJlbmRlci5jb20iOwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gTWFpbkFwcCgpIHsKICBjb25zdCBbdG9rZW4sIHNldFRva2VuXSA9IHVzZVN0YXRlKGxvY2FsU3RvcmFnZS5nZXRJdGVtKCJ0b2tlbiIpIHx8ICIiKTsKICBjb25zdCBbbG9naW4sIHNldExvZ2luXSA9IHVzZVN0YXRlKGxvY2FsU3RvcmFnZS5nZXRJdGVtKCJsb2dpbiIpIHx8ICIiKTsKICBjb25zdCBbcGFzc3dvcmQsIHNldFBhc3N3b3JkXSA9IHVzZVN0YXRlKCIiKTsKICBjb25zdCBbc2NvcmVib2FyZCwgc2V0U2NvcmVib2FyZF0gPSB1c2VTdGF0ZShbXSk7CiAgY29uc3QgW2xhbmd1YWdlLCBzZXRMYW5ndWFnZV0gPSB1c2VTdGF0ZSgiUEwiKTsKICBjb25zdCBbcHJvbXB0LCBzZXRQcm9tcHRdID0gdXNlU3RhdGUoIiIpOwogIGNvbnN0IFtoaXN0b3J5LCBzZXRIaXN0b3J5XSA9IHVzZVN0YXRlKAogICAgSlNPTi5wYXJzZShsb2NhbFN0b3JhZ2UuZ2V0SXRlbSgiaGlzdG9yeSIpIHx8ICJbXSIpCiAgKTsKICBjb25zdCBbc2hvd0hpc3RvcnksIHNldFNob3dIaXN0b3J5XSA9IHVzZVN0YXRlKGZhbHNlKTsKCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIGlmICh0b2tlbikgewogICAgICBmZXRjaChgJHtBUElfVVJMfS9zY29yZWJvYXJkYCwgewogICAgICAgIGhlYWRlcnM6IHsgQXV0aG9yaXphdGlvbjogYEJlYXJlciAke3Rva2VufWAgfSwKICAgICAgfSkKICAgICAgICAudGhlbigocmVzKSA9PiB7CiAgICAgICAgICBpZiAocmVzLnN0YXR1cyA9PT0gNDAxKSB7CiAgICAgICAgICAgIGxvZ291dCgpOwogICAgICAgICAgICByZXR1cm4gbnVsbDsKICAgICAgICAgIH0KICAgICAgICAgIHJldHVybiByZXMub2sgPyByZXMuanNvbigpIDogbnVsbDsKICAgICAgICB9KQogICAgICAgIC50aGVuKChkYXRhKSA9PiB7CiAgICAgICAgICBpZiAoZGF0YSkgc2V0U2NvcmVib2FyZChkYXRhKTsKICAgICAgICB9KQogICAgICAgIC5jYXRjaCgoKSA9PiB7fSk7CiAgICB9CiAgfSwgW3Rva2VuXSk7CgogIHVzZUVmZmVjdCgoKSA9PiB7CiAgICBsb2NhbFN0b3JhZ2Uuc2V0SXRlbSgiaGlzdG9yeSIsIEpTT04uc3RyaW5naWZ5KGhpc3RvcnkpKTsKICB9LCBbaGlzdG9yeV0pOwoKICBjb25zdCBsb2dvdXQgPSAoKSA9PiB7CiAgICBzZXRUb2tlbigiIik7CiAgICBzZXRMb2dpbigiIik7CiAgICBsb2NhbFN0b3JhZ2UucmVtb3ZlSXRlbSgidG9rZW4iKTsKICAgIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKCJsb2dpbiIpOwogICAgc2V0U2NvcmVib2FyZChbXSk7CiAgfTsKCiAgY29uc3QgYXV0aCA9IGFzeW5jICgpID0+IHsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHJlcyA9IGF3YWl0IGZldGNoKGAke0FQSV9VUkx9L2F1dGhgLCB7CiAgICAgICAgbWV0aG9kOiAiUE9TVCIsCiAgICAgICAgaGVhZGVyczogeyAiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL2pzb24iIH0sCiAgICAgICAgYm9keTogSlNPTi5zdHJpbmdpZnkoeyBsb2dpbiwgcGFzc3dvcmQgfSksCiAgICAgIH0pOwogICAgICBpZiAocmVzLm9rKSB7CiAgICAgICAgY29uc3QgeyB0b2tlbiB9ID0gYXdhaXQgcmVzLmpzb24oKTsKICAgICAgICBzZXRUb2tlbih0b2tlbik7CiAgICAgICAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oInRva2VuIiwgdG9rZW4pOwogICAgICAgIGxvY2FsU3RvcmFnZS5zZXRJdGVtKCJsb2dpbiIsIGxvZ2luKTsKICAgICAgICBzZXRQYXNzd29yZCgiIik7CiAgICAgIH0gZWxzZSB7CiAgICAgICAgYWxlcnQobGFuZ3VhZ2UgPT09ICJQTCIgPyAiQsWCxIVkIGxvZ293YW5pYS4gU3ByYXdkxbogZGFuZS4iIDogIkxvZ2luIGZhaWxlZC4gQ2hlY2sgeW91ciBjcmVkZW50aWFscy4iKTsKICAgICAgfQogICAgfSBjYXRjaCB7CiAgICAgIGFsZXJ0KGxhbmd1YWdlID09PSAiUEwiID8gIkLFgsSFZCBzaWVjaS4gU3Byw7NidWogcG9ub3duaWUuIiA6ICJOZXR3b3JrIGVycm9yLiBUcnkgYWdhaW4uIik7CiAgICB9CiAgfTsKCiAgY29uc3Qgc3VibWl0UHJvbXB0ID0gYXN5bmMgKCkgPT4gewogICAgY29uc3QgdHJpbW1lZCA9IHByb21wdC50cmltKCk7CiAgICBpZiAoIXRyaW1tZWQpIHJldHVybjsKCiAgICB0cnkgewogICAgICBjb25zdCByZXMgPSBhd2FpdCBmZXRjaChgJHtBUElfVVJMfS9hbmFseXplX3Byb21wdGAsIHsKICAgICAgICBtZXRob2Q6ICJQT1NUIiwKICAgICAgICBoZWFkZXJzOiB7CiAgICAgICAgICAiQ29udGVudC1UeXBlIjogImFwcGxpY2F0aW9uL2pzb24iLAogICAgICAgICAgQXV0aG9yaXphdGlvbjogYEJlYXJlciAke3Rva2VufWAsCiAgICAgICAgfSwKICAgICAgICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IHByb21wdDogdHJpbW1lZCB9KSwKICAgICAgfSk7CgogICAgICBpZiAocmVzLnN0YXR1cyA9PT0gNDAxKSB7CiAgICAgICAgYWxlcnQobGFuZ3VhZ2UgPT09ICJQTCIgPyAiQnJhayBhdXRvcnl6YWNqaS4gWmFsb2d1aiBzacSZIHBvbm93bmllLiIgOiAiVW5hdXRob3JpemVkLiBQbGVhc2UgbG9naW4gYWdhaW4uIik7CiAgICAgICAgbG9nb3V0KCk7CiAgICAgICAgcmV0dXJuOwogICAgICB9CgogICAgICBpZiAocmVzLm9rKSB7CiAgICAgICAgY29uc3QgeyBwb2ludHMsIHRvdGFsIH0gPSBhd2FpdCByZXMuanNvbigpOwogICAgICAgIHNldEhpc3RvcnkoKGgpID0+IHsKICAgICAgICAgIGNvbnN0IG5ld0hpc3RvcnkgPSBbdHJpbW1lZCwgLi4uaC5maWx0ZXIoKHApID0+IHAgIT09IHRyaW1tZWQpXS5zbGljZSgwLCA1KTsKICAgICAgICAgIHJldHVybiBuZXdIaXN0b3J5OwogICAgICAgIH0pOwogICAgICAgIHNldFByb21wdCgiIik7CiAgICAgICAgc2V0U2hvd0hpc3RvcnkodHJ1ZSk7CiAgICAgICAgYWxlcnQobGFuZ3VhZ2UgPT09ICJQTCIgCiAgICAgICAgICA/IGBQcm9tcHQgcHJ6ZWFuYWxpem93YW55ISBaZG9iecWCZcWbICR7cG9pbnRzfSBwdW5rdMOzdy4gUmF6ZW06ICR7dG90YWx9YAogICAgICAgICAgOiBgUHJvbXB0IGFuYWx5emVkISBZb3UgZWFybmVkICR7cG9pbnRzfSBwb2ludHMuIFRvdGFsOiAke3RvdGFsfWApOwogICAgICB9IGVsc2UgewogICAgICAgIGFsZXJ0KGxhbmd1YWdlID09PSAiUEwiID8gIkLFgsSFZCBhbmFsaXp5IHByb21wdGEuIiA6ICJFcnJvciBhbmFseXppbmcgcHJvbXB0LiIpOwogICAgICB9CiAgICB9IGNhdGNoIHsKICAgICAgYWxlcnQobGFuZ3VhZ2UgPT09ICJQTCIgPyAiQsWCxIVkIGFuYWxpenkgcHJvbXB0YS4iIDogIkVycm9yIGFuYWx5emluZyBwcm9tcHQuIik7CiAgICB9CiAgfTsKCiAgcmV0dXJuICgKICAgIDxkaXYgY2xhc3NOYW1lPXtgYXBwLWNvbnRhaW5lciR7dG9rZW4gPyAiIGxvZ2dlZC1pbiIgOiAiIn1gfT4KICAgICAgPExhbmd1YWdlU3dpdGNoZXIgb25MYW5ndWFnZUNoYW5nZT17c2V0TGFuZ3VhZ2V9IGFjdGl2ZUxhbmc9e2xhbmd1YWdlfSAvPgoKICAgICAgeyF0b2tlbiA/ICgKICAgICAgICA8QXV0aAogICAgICAgICAgbG9naW49e2xvZ2lufQogICAgICAgICAgc2V0TG9naW49e3NldExvZ2lufQogICAgICAgICAgcGFzc3dvcmQ9e3Bhc3N3b3JkfQogICAgICAgICAgc2V0UGFzc3dvcmQ9e3NldFBhc3N3b3JkfQogICAgICAgICAgYXV0aD17YXV0aH0KICAgICAgICAgIGxhbmd1YWdlPXtsYW5ndWFnZX0KICAgICAgICAvPgogICAgICApIDogKAogICAgICAgIDw+CiAgICAgICAgICA8U2NvcmVib2FyZCBzY29yZWJvYXJkPXtzY29yZWJvYXJkfSBsYW5ndWFnZT17bGFuZ3VhZ2V9IC8+CiAgICAgICAgICA8UHJvbXB0Rm9ybQogICAgICAgICAgICB0b2tlbj17dG9rZW59CiAgICAgICAgICAgIHByb21wdD17cHJvbXB0fQogICAgICAgICAgICBzZXRQcm9tcHQ9e3NldFByb21wdH0KICAgICAgICAgICAgc3VibWl0UHJvbXB0PXtzdWJtaXRQcm9tcHR9CiAgICAgICAgICAgIHNob3dIaXN0b3J5PXtzaG93SGlzdG9yeX0KICAgICAgICAgICAgc2V0U2hvd0hpc3Rvcnk9e3NldFNob3dIaXN0b3J5fQogICAgICAgICAgICBoaXN0b3J5PXtoaXN0b3J5fQogICAgICAgICAgICBvblNlbGVjdEhpc3Rvcnk9eyhpdGVtKSA9PiB7CiAgICAgICAgICAgICAgc2V0UHJvbXB0KGl0ZW0pOwogICAgICAgICAgICAgIHNldFNob3dIaXN0b3J5KGZhbHNlKTsKICAgICAgICAgICAgfX0KICAgICAgICAgICAgbGFuZ3VhZ2U9e2xhbmd1YWdlfQogICAgICAgICAgLz4KICAgICAgICA8Lz4KICAgICAgKX0KICAgIDwvZGl2PgogICk7Cn0",
+					"AQAAAAAAAAABAAAAoBEAAAAAAACgEQAAAAAAAAAAAAAAAPC/"
+				]
+			],
+			"settings":
+			{
+				"buffer_size": 3078,
+				"encoding": "UTF-8",
+				"line_ending": "Unix",
+				"name": "import React, { useState, useEffect } from \"react\""
+			},
+			"undo_stack":
+			[
+				[
+					1,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAABgwAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"contents": "import React, { useState } from \"react\";\nimport { BrowserRouter as Router, Routes, Route, Navigate } from \"react-router-dom\";\n\nimport LoginPage from \"./LoginPage\";\nimport MainApp from \"./MainApp\";\n\nexport default function App() {\n  const [token, setToken] = useState(localStorage.getItem(\"token\") || \"\");\n  const [login, setLogin] = useState(localStorage.getItem(\"login\") || \"\");\n\n  const handleLogin = (token, login) => {\n    setToken(token);\n    setLogin(login);\n    localStorage.setItem(\"token\", token);\n    localStorage.setItem(\"login\", login);\n  };\n\n  const logout = () => {\n    setToken(\"\");\n    setLogin(\"\");\n    localStorage.removeItem(\"token\");\n    localStorage.removeItem(\"login\");\n  };\n\n  return (\n    <Router>\n      <Routes>\n        <Route\n          path=\"/login\"\n          element={token ? <Navigate to=\"/app\" /> : <LoginPage onLogin={handleLogin} />}\n        />\n        <Route\n          path=\"/app/*\"\n          element={token ? <MainApp token={token} logout={logout} login={login} /> : <Navigate to=\"/login\" />}\n        />\n        <Route path=\"*\" element={<Navigate to={token ? \"/app\" : \"/login\"} />} />\n      </Routes>\n    </Router>\n  );\n}",
+			"file": "App.js",
+			"file_size": 1176,
+			"file_write_time": 133937761763482714,
+			"settings":
+			{
+				"buffer_size": 1154,
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					18,
+					2,
+					"left_delete",
+					null,
+					"AgAAAMYAAAAAAAAAxgAAAAAAAAALAAAAY29tcG9uZW50cy/FAAAAAAAAAMUAAAAAAAAAAQAAAC8",
+					"AQAAAAAAAAABAAAA0QAAAAAAAADGAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					19,
+					1,
+					"insert",
+					{
+						"characters": "/"
+					},
+					"AQAAAMUAAAAAAAAAxgAAAAAAAAAAAAAA",
+					"AQAAAAAAAAABAAAAxQAAAAAAAADFAAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					22,
+					11,
+					"left_delete",
+					null,
+					"CwAAAKIAAAAAAAAAogAAAAAAAAABAAAAL6EAAAAAAAAAoQAAAAAAAAABAAAAc6AAAAAAAAAAoAAAAAAAAAABAAAAdJ8AAAAAAAAAnwAAAAAAAAABAAAAbp4AAAAAAAAAngAAAAAAAAABAAAAZZ0AAAAAAAAAnQAAAAAAAAABAAAAbpwAAAAAAAAAnAAAAAAAAAABAAAAb5sAAAAAAAAAmwAAAAAAAAABAAAAcJoAAAAAAAAAmgAAAAAAAAABAAAAbZkAAAAAAAAAmQAAAAAAAAABAAAAb5gAAAAAAAAAmAAAAAAAAAABAAAAYw",
+					"AQAAAAAAAAABAAAAowAAAAAAAACjAAAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "components/Auth.js",
+			"settings":
+			{
+				"buffer_size": 944,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+			]
+		},
+		{
+			"file": "components/PromptForm.js",
+			"settings":
+			{
+				"buffer_size": 2912,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					4,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAcQgAAAAAAABKCAAAaW1wb3J0IFJlYWN0LCB7IHVzZVJlZiB9IGZyb20gInJlYWN0IjsKaW1wb3J0IHsgRmFTZWFyY2gsIEZhUmVnSW1hZ2UgfSBmcm9tICJyZWFjdC1pY29ucy9mYSI7CmltcG9ydCBNaWNJbnB1dCBmcm9tICIuL01pY0lucHV0IjsKaW1wb3J0IFByb21wdEhpc3RvcnkgZnJvbSAiLi9Qcm9tcHRIaXN0b3J5IjsKaW1wb3J0ICIuLi9zdHlsZXMvUHJvbXB0Rm9ybS5jc3MiOwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gUHJvbXB0Rm9ybSh7CiAgdG9rZW4sCiAgcHJvbXB0LAogIHNldFByb21wdCwKICBzdWJtaXRQcm9tcHQsCiAgaGlzdG9yeSwKICBzZXRTaG93SGlzdG9yeSwKICBzaG93SGlzdG9yeSwKICBsYW5ndWFnZSwKICBvblNlbGVjdEhpc3RvcnksCn0pIHsKICBjb25zdCBwcm9tcHRJbnB1dFJlZiA9IHVzZVJlZihudWxsKTsKCiAgUmVhY3QudXNlRWZmZWN0KCgpID0+IHsKICAgIGlmICh0b2tlbiAmJiBwcm9tcHRJbnB1dFJlZi5jdXJyZW50KSB7CiAgICAgIHByb21wdElucHV0UmVmLmN1cnJlbnQuZm9jdXMoKTsKICAgIH0KICB9LCBbdG9rZW5dKTsKCiAgcmV0dXJuICgKICAgIDw+CiAgICAgIDxmb3JtCiAgICAgICAgb25TdWJtaXQ9e2UgPT4gewogICAgICAgICAgZS5wcmV2ZW50RGVmYXVsdCgpOwogICAgICAgICAgaWYgKHR5cGVvZiBzdWJtaXRQcm9tcHQgPT09ICJmdW5jdGlvbiIpIHsKICAgICAgICAgICAgc3VibWl0UHJvbXB0KCk7CiAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICBjb25zb2xlLndhcm4oInN1Ym1pdFByb21wdCBmdW5jdGlvbiBpcyBub3QgZGVmaW5lZCIpOwogICAgICAgICAgfQogICAgICAgIH19CiAgICAgICAgY2xhc3NOYW1lPSJwcm9tcHQtaW5wdXQtZm9ybSIKICAgICAgICBhdXRvQ29tcGxldGU9Im9mZiIKICAgICAgICBzcGVsbENoZWNrPSJmYWxzZSIKICAgICAgPgogICAgICAgIDxkaXYKICAgICAgICAgIGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWljb24tbGVmdCIKICAgICAgICAgIG9uQ2xpY2s9eygpID0+IHNldFNob3dIaXN0b3J5KHYgPT4gIXYpfQogICAgICAgICAgc3R5bGU9e3sgY3Vyc29yOiAicG9pbnRlciIgfX0KICAgICAgICA+CiAgICAgICAgICA8RmFTZWFyY2ggc2l6ZT17MjB9IC8+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGlucHV0CiAgICAgICAgICByZWY9e3Byb21wdElucHV0UmVmfQogICAgICAgICAgdHlwZT0idGV4dCIKICAgICAgICAgIHZhbHVlPXtwcm9tcHR9CiAgICAgICAgICBvbkNoYW5nZT17ZSA9PiBzZXRQcm9tcHQoZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgcGxhY2Vob2xkZXI9e2xhbmd1YWdlID09PSAiUEwiID8gIldwaXN6IHByb21wdC4uLiIgOiAiRW50ZXIgcHJvbXB0Li4uIn0KICAgICAgICAgIGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWZpZWxkIgogICAgICAgIC8+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9InByb21wdC1pbnB1dC1pY29uLXJpZ2h0Ij4KICAgICAgICAgIDxNaWNJbnB1dAogICAgICAgICAgICBsYW5ndWFnZT17bGFuZ3VhZ2V9CiAgICAgICAgICAgIG9uVHJhbnNjcmlwdD17dGV4dCA9PiBzZXRQcm9tcHQocCA9PiAocCA/IGAke3B9ICR7dGV4dH1gIDogdGV4dCkpfQogICAgICAgICAgLz4KICAgICAgICAgIDxGYVJlZ0ltYWdlIHNpemU9ezIwfSBzdHlsZT17eyBvcGFjaXR5OiAwLjQsIGN1cnNvcjogIm5vdC1hbGxvd2VkIiwgbWFyZ2luTGVmdDogMTIgfX0gLz4KICAgICAgICA8L2Rpdj4KICAgICAgPC9mb3JtPgoKICAgICAge3Nob3dIaXN0b3J5ICYmICgKICAgICAgICA8UHJvbXB0SGlzdG9yeQogICAgICAgICAgaGlzdG9yeT17aGlzdG9yeX0KICAgICAgICAgIG9uU2VsZWN0PXtpdGVtID0+IHsKICAgICAgICAgICAgaWYgKHR5cGVvZiBvblNlbGVjdEhpc3RvcnkgPT09ICJmdW5jdGlvbiIpIHsKICAgICAgICAgICAgICBvblNlbGVjdEhpc3RvcnkoaXRlbSk7CiAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgY29uc29sZS53YXJuKCJvblNlbGVjdEhpc3RvcnkgZnVuY3Rpb24gaXMgbm90IGRlZmluZWQiKTsKICAgICAgICAgICAgfQogICAgICAgICAgICBwcm9tcHRJbnB1dFJlZi5jdXJyZW50Py5mb2N1cygpOwogICAgICAgICAgfX0KICAgICAgICAvPgogICAgICApfQogICAgPC8+CiAgKTsKfQ",
+					"AQAAAAAAAAABAAAAAAAAAAAAAABKCAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					26,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAAAkAAAAAAABxCAAAaW1wb3J0IFJlYWN0LCB7IHVzZVJlZiB9IGZyb20gInJlYWN0IjsKaW1wb3J0IHsgRmFTZWFyY2gsIEZhUmVnSW1hZ2UgfSBmcm9tICJyZWFjdC1pY29ucy9mYSI7CmltcG9ydCBNaWNJbnB1dCBmcm9tICIuL01pY0lucHV0IjsKaW1wb3J0IFByb21wdEhpc3RvcnkgZnJvbSAiLi9Qcm9tcHRIaXN0b3J5IjsKaW1wb3J0ICIuLi9zdHlsZXMvUHJvbXB0Rm9ybS5jc3MiOwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gUHJvbXB0Rm9ybSh7CiAgdG9rZW4sCiAgcHJvbXB0LAogIHNldFByb21wdCwKICBzdWJtaXRQcm9tcHQsCiAgaGlzdG9yeSwKICBzZXRTaG93SGlzdG9yeSwKICBzaG93SGlzdG9yeSwKICBsYW5ndWFnZSwKICBvblNlbGVjdEhpc3RvcnksCn0pIHsKICBjb25zdCBwcm9tcHRJbnB1dFJlZiA9IHVzZVJlZihudWxsKTsKCiAgUmVhY3QudXNlRWZmZWN0KCgpID0+IHsKICAgIGlmICh0b2tlbiAmJiBwcm9tcHRJbnB1dFJlZi5jdXJyZW50KSB7CiAgICAgIHByb21wdElucHV0UmVmLmN1cnJlbnQuZm9jdXMoKTsKICAgIH0KICB9LCBbdG9rZW5dKTsKCiAgcmV0dXJuICgKICAgIDw+CiAgICAgIDxmb3JtCiAgICAgICAgb25TdWJtaXQ9eyhlKSA9PiB7CiAgICAgICAgICBlLnByZXZlbnREZWZhdWx0KCk7CiAgICAgICAgICBpZiAodHlwZW9mIHN1Ym1pdFByb21wdCA9PT0gImZ1bmN0aW9uIikgewogICAgICAgICAgICBzdWJtaXRQcm9tcHQoKTsKICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgIGNvbnNvbGUud2Fybigic3VibWl0UHJvbXB0IGZ1bmN0aW9uIGlzIG5vdCBkZWZpbmVkIik7CiAgICAgICAgICB9CiAgICAgICAgfX0KICAgICAgICBjbGFzc05hbWU9InByb21wdC1pbnB1dC1mb3JtIgogICAgICAgIGF1dG9Db21wbGV0ZT0ib2ZmIgogICAgICAgIHNwZWxsQ2hlY2s9ImZhbHNlIgogICAgICA+CiAgICAgICAgPGRpdgogICAgICAgICAgY2xhc3NOYW1lPSJwcm9tcHQtaW5wdXQtaWNvbi1sZWZ0IgogICAgICAgICAgb25DbGljaz17KCkgPT4gc2V0U2hvd0hpc3RvcnkoKHYpID0+ICF2KX0KICAgICAgICAgIHN0eWxlPXt7IGN1cnNvcjogInBvaW50ZXIiIH19CiAgICAgICAgPgogICAgICAgICAgPEZhU2VhcmNoIHNpemU9ezIwfSAvPgogICAgICAgIDwvZGl2PgogICAgICAgIDxpbnB1dAogICAgICAgICAgcmVmPXtwcm9tcHRJbnB1dFJlZn0KICAgICAgICAgIHR5cGU9InRleHQiCiAgICAgICAgICB2YWx1ZT17cHJvbXB0fQogICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRQcm9tcHQoZS50YXJnZXQudmFsdWUpfQogICAgICAgICAgcGxhY2Vob2xkZXI9e2xhbmd1YWdlID09PSAiUEwiID8gIldwaXN6IHByb21wdC4uLiIgOiAiRW50ZXIgcHJvbXB0Li4uIn0KICAgICAgICAgIGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWZpZWxkIgogICAgICAgIC8+CiAgICAgICAgPGRpdiBjbGFzc05hbWU9InByb21wdC1pbnB1dC1pY29uLXJpZ2h0Ij4KICAgICAgICAgIDxNaWNJbnB1dAogICAgICAgICAgICBsYW5ndWFnZT17bGFuZ3VhZ2V9CiAgICAgICAgICAgIG9uVHJhbnNjcmlwdD17KHRleHQpID0+CiAgICAgICAgICAgICAgc2V0UHJvbXB0KChwKSA9PiAocCA/IGAke3B9ICR7dGV4dH1gIDogdGV4dCkpCiAgICAgICAgICAgIH0KICAgICAgICAgIC8+CiAgICAgICAgICA8RmFSZWdJbWFnZSBzaXplPXsyMH0gc3R5bGU9e3sgb3BhY2l0eTogMC40LCBjdXJzb3I6ICJub3QtYWxsb3dlZCIsIG1hcmdpbkxlZnQ6IDEyIH19IC8+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZm9ybT4KCiAgICAgIHtzaG93SGlzdG9yeSAmJiAoCiAgICAgICAgPFByb21wdEhpc3RvcnkKICAgICAgICAgIGhpc3Rvcnk9e2hpc3Rvcnl9CiAgICAgICAgICBvblNlbGVjdD17KGl0ZW0pID0+IHsKICAgICAgICAgICAgaWYgKHR5cGVvZiBvblNlbGVjdEhpc3RvcnkgPT09ICJmdW5jdGlvbiIpIHsKICAgICAgICAgICAgICBvblNlbGVjdEhpc3RvcnkoaXRlbSk7CiAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgY29uc29sZS53YXJuKCJvblNlbGVjdEhpc3RvcnkgZnVuY3Rpb24gaXMgbm90IGRlZmluZWQiKTsKICAgICAgICAgICAgfQogICAgICAgICAgICBwcm9tcHRJbnB1dFJlZi5jdXJyZW50Py5mb2N1cygpOwogICAgICAgICAgfX0KICAgICAgICAvPgogICAgICApfQogICAgPC8+CiAgKTsKfQ",
+					"AQAAAAAAAAABAAAAAAAAAAAAAABxCAAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					41,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAHgkAAAAAAAAACQAAaW1wb3J0IFJlYWN0LCB7IHVzZVJlZiwgdXNlRWZmZWN0IH0gZnJvbSAicmVhY3QiOwppbXBvcnQgeyBGYVNlYXJjaCwgRmFSZWdJbWFnZSB9IGZyb20gInJlYWN0LWljb25zL2ZhIjsKaW1wb3J0IE1pY0lucHV0IGZyb20gIi4vTWljSW5wdXQiOwppbXBvcnQgUHJvbXB0SGlzdG9yeSBmcm9tICIuL1Byb21wdEhpc3RvcnkiOwppbXBvcnQgIi4uL3N0eWxlcy9Qcm9tcHRGb3JtLmNzcyI7CgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBQcm9tcHRGb3JtKHsKICB0b2tlbiwKICBwcm9tcHQsCiAgc2V0UHJvbXB0LAogIHN1Ym1pdFByb21wdCwKICBoaXN0b3J5LAogIHNldFNob3dIaXN0b3J5LAogIHNob3dIaXN0b3J5LAogIGxhbmd1YWdlLAogIG9uU2VsZWN0SGlzdG9yeSwKfSkgewogIGNvbnN0IHByb21wdElucHV0UmVmID0gdXNlUmVmKG51bGwpOwoKICB1c2VFZmZlY3QoKCkgPT4gewogICAgaWYgKHRva2VuICYmIHByb21wdElucHV0UmVmLmN1cnJlbnQpIHsKICAgICAgcHJvbXB0SW5wdXRSZWYuY3VycmVudC5mb2N1cygpOwogICAgfQogIH0sIFt0b2tlbl0pOwoKICByZXR1cm4gKAogICAgPD4KICAgICAgPGZvcm0KICAgICAgICBvblN1Ym1pdD17KGUpID0+IHsKICAgICAgICAgIGUucHJldmVudERlZmF1bHQoKTsKICAgICAgICAgIGlmICh0eXBlb2Ygc3VibWl0UHJvbXB0ID09PSAiZnVuY3Rpb24iKSB7CiAgICAgICAgICAgIHN1Ym1pdFByb21wdCgpOwogICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgY29uc29sZS53YXJuKCJzdWJtaXRQcm9tcHQgZnVuY3Rpb24gaXMgbm90IGRlZmluZWQiKTsKICAgICAgICAgIH0KICAgICAgICB9fQogICAgICAgIGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWZvcm0iCiAgICAgICAgYXV0b0NvbXBsZXRlPSJvZmYiCiAgICAgICAgc3BlbGxDaGVjaz0iZmFsc2UiCiAgICAgID4KICAgICAgICA8ZGl2CiAgICAgICAgICBjbGFzc05hbWU9InByb21wdC1pbnB1dC1pY29uLWxlZnQiCiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTaG93SGlzdG9yeSgodikgPT4gIXYpfQogICAgICAgICAgc3R5bGU9e3sgY3Vyc29yOiAicG9pbnRlciIgfX0KICAgICAgICA+CiAgICAgICAgICA8RmFTZWFyY2ggc2l6ZT17MjB9IC8+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGlucHV0CiAgICAgICAgICByZWY9e3Byb21wdElucHV0UmVmfQogICAgICAgICAgdHlwZT0idGV4dCIKICAgICAgICAgIHZhbHVlPXtwcm9tcHR9CiAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFByb21wdChlLnRhcmdldC52YWx1ZSl9CiAgICAgICAgICBwbGFjZWhvbGRlcj17bGFuZ3VhZ2UgPT09ICJQTCIgPyAiV3Bpc3ogcHJvbXB0Li4uIiA6ICJFbnRlciBwcm9tcHQuLi4ifQogICAgICAgICAgY2xhc3NOYW1lPSJwcm9tcHQtaW5wdXQtZmllbGQiCiAgICAgICAgICBvbkZvY3VzPXsoKSA9PiBzZXRTaG93SGlzdG9yeSh0cnVlKX0KICAgICAgICAvPgogICAgICAgIDxkaXYgY2xhc3NOYW1lPSJwcm9tcHQtaW5wdXQtaWNvbi1yaWdodCI+CiAgICAgICAgICA8TWljSW5wdXQKICAgICAgICAgICAgbGFuZ3VhZ2U9e2xhbmd1YWdlfQogICAgICAgICAgICBvblRyYW5zY3JpcHQ9eyh0ZXh0KSA9PgogICAgICAgICAgICAgIHNldFByb21wdCgocCkgPT4gKHAgPyBgJHtwfSAke3RleHR9YCA6IHRleHQpKQogICAgICAgICAgICB9CiAgICAgICAgICAvPgogICAgICAgICAgPEZhUmVnSW1hZ2UKICAgICAgICAgICAgc2l6ZT17MjB9CiAgICAgICAgICAgIHN0eWxlPXt7IG9wYWNpdHk6IDAuNCwgY3Vyc29yOiAibm90LWFsbG93ZWQiLCBtYXJnaW5MZWZ0OiAxMiB9fQogICAgICAgICAgLz4KICAgICAgICA8L2Rpdj4KICAgICAgPC9mb3JtPgoKICAgICAge3Nob3dIaXN0b3J5ICYmIGhpc3RvcnkubGVuZ3RoID4gMCAmJiAoCiAgICAgICAgPFByb21wdEhpc3RvcnkKICAgICAgICAgIGhpc3Rvcnk9e2hpc3Rvcnl9CiAgICAgICAgICBvblNlbGVjdD17KGl0ZW0pID0+IHsKICAgICAgICAgICAgaWYgKHR5cGVvZiBvblNlbGVjdEhpc3RvcnkgPT09ICJmdW5jdGlvbiIpIHsKICAgICAgICAgICAgICBvblNlbGVjdEhpc3RvcnkoaXRlbSk7CiAgICAgICAgICAgIH0gZWxzZSB7CiAgICAgICAgICAgICAgY29uc29sZS53YXJuKCJvblNlbGVjdEhpc3RvcnkgZnVuY3Rpb24gaXMgbm90IGRlZmluZWQiKTsKICAgICAgICAgICAgfQogICAgICAgICAgICBwcm9tcHRJbnB1dFJlZi5jdXJyZW50Py5mb2N1cygpOwogICAgICAgICAgICBzZXRTaG93SGlzdG9yeShmYWxzZSk7CiAgICAgICAgICB9fQogICAgICAgIC8+CiAgICAgICl9CiAgICA8Lz4KICApOwp9",
+					"AQAAAAAAAAABAAAAAAAAAAAAAAAACQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					45,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAHgkAAAAAAAAiCQAAaW1wb3J0IFJlYWN0LCB7IHVzZVJlZiwgdXNlRWZmZWN0IH0gZnJvbSAicmVhY3QiOwppbXBvcnQgeyBGYVNlYXJjaCwgRmFSZWdJbWFnZSB9IGZyb20gInJlYWN0LWljb25zL2ZhIjsKaW1wb3J0IE1pY0lucHV0IGZyb20gIi4vTWljSW5wdXQiOwppbXBvcnQgUHJvbXB0SGlzdG9yeSBmcm9tICIuL1Byb21wdEhpc3RvcnkiOwppbXBvcnQgIi4uL3N0eWxlcy9Qcm9tcHRGb3JtLmNzcyI7CgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBQcm9tcHRGb3JtKHsKICB0b2tlbiwKICBwcm9tcHQsCiAgc2V0UHJvbXB0LAogIHN1Ym1pdFByb21wdCwKICBoaXN0b3J5LAogIHNldFNob3dIaXN0b3J5LAogIHNob3dIaXN0b3J5LAogIGxhbmd1YWdlLAogIG9uU2VsZWN0SGlzdG9yeSwKfSkgewogIGNvbnN0IHByb21wdElucHV0UmVmID0gdXNlUmVmKG51bGwpOwoKICB1c2VFZmZlY3QoKCkgPT4gewogICAgaWYgKHRva2VuICYmIHByb21wdElucHV0UmVmLmN1cnJlbnQpIHsKICAgICAgcHJvbXB0SW5wdXRSZWYuY3VycmVudC5mb2N1cygpOwogICAgfQogIH0sIFt0b2tlbl0pOwoKICByZXR1cm4gKAogICAgPD4KICAgICAgPGZvcm0KICAgICAgICBvblN1Ym1pdD17KGUpID0+IHsKICAgICAgICAgIGUucHJldmVudERlZmF1bHQoKTsKICAgICAgICAgIGlmICh0eXBlb2Ygc3VibWl0UHJvbXB0ID09PSAiZnVuY3Rpb24iKSB7CiAgICAgICAgICAgIHN1Ym1pdFByb21wdCgpOwogICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgY29uc29sZS53YXJuKCJzdWJtaXRQcm9tcHQgZnVuY3Rpb24gaXMgbm90IGRlZmluZWQiKTsKICAgICAgICAgIH0KICAgICAgICB9fQogICAgICAgIGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWZvcm0iCiAgICAgICAgYXV0b0NvbXBsZXRlPSJvZmYiCiAgICAgICAgc3BlbGxDaGVjaz0iZmFsc2UiCiAgICAgID4KICAgICAgICA8ZGl2CiAgICAgICAgICBjbGFzc05hbWU9InByb21wdC1pbnB1dC1pY29uLWxlZnQiCiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTaG93SGlzdG9yeSgodikgPT4gIXYpfQogICAgICAgICAgc3R5bGU9e3sgY3Vyc29yOiAicG9pbnRlciIgfX0KICAgICAgICA+CiAgICAgICAgICA8RmFTZWFyY2ggc2l6ZT17MjB9IC8+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGlucHV0CiAgICAgICAgICByZWY9e3Byb21wdElucHV0UmVmfQogICAgICAgICAgdHlwZT0idGV4dCIKICAgICAgICAgIHZhbHVlPXtwcm9tcHR9CiAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFByb21wdChlLnRhcmdldC52YWx1ZSl9CiAgICAgICAgICBwbGFjZWhvbGRlcj17bGFuZ3VhZ2UgPT09ICJQTCIgPyAiV3Bpc3ogcHJvbXB0Li4uIiA6ICJFbnRlciBwcm9tcHQuLi4ifQogICAgICAgICAgY2xhc3NOYW1lPSJwcm9tcHQtaW5wdXQtZmllbGQiCiAgICAgICAgICAvLyBVc3VuacSZdG8gb25Gb2N1cywgxbxlYnkgaGlzdG9yaWEgc2nEmSBuaWUgb3R3aWVyYcWCYSBhdXRvbWF0eWN6bmllCiAgICAgICAgLz4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWljb24tcmlnaHQiPgogICAgICAgICAgPE1pY0lucHV0CiAgICAgICAgICAgIGxhbmd1YWdlPXtsYW5ndWFnZX0KICAgICAgICAgICAgb25UcmFuc2NyaXB0PXsodGV4dCkgPT4KICAgICAgICAgICAgICBzZXRQcm9tcHQoKHApID0+IChwID8gYCR7cH0gJHt0ZXh0fWAgOiB0ZXh0KSkKICAgICAgICAgICAgfQogICAgICAgICAgLz4KICAgICAgICAgIDxGYVJlZ0ltYWdlCiAgICAgICAgICAgIHNpemU9ezIwfQogICAgICAgICAgICBzdHlsZT17eyBvcGFjaXR5OiAwLjQsIGN1cnNvcjogIm5vdC1hbGxvd2VkIiwgbWFyZ2luTGVmdDogMTIgfX0KICAgICAgICAgIC8+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZm9ybT4KCiAgICAgIHtzaG93SGlzdG9yeSAmJiBoaXN0b3J5Lmxlbmd0aCA+IDAgJiYgKAogICAgICAgIDxQcm9tcHRIaXN0b3J5CiAgICAgICAgICBoaXN0b3J5PXtoaXN0b3J5fQogICAgICAgICAgb25TZWxlY3Q9eyhpdGVtKSA9PiB7CiAgICAgICAgICAgIGlmICh0eXBlb2Ygb25TZWxlY3RIaXN0b3J5ID09PSAiZnVuY3Rpb24iKSB7CiAgICAgICAgICAgICAgb25TZWxlY3RIaXN0b3J5KGl0ZW0pOwogICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgIGNvbnNvbGUud2Fybigib25TZWxlY3RIaXN0b3J5IGZ1bmN0aW9uIGlzIG5vdCBkZWZpbmVkIik7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgcHJvbXB0SW5wdXRSZWYuY3VycmVudD8uZm9jdXMoKTsKICAgICAgICAgICAgc2V0U2hvd0hpc3RvcnkoZmFsc2UpOwogICAgICAgICAgfX0KICAgICAgICAvPgogICAgICApfQogICAgPC8+CiAgKTsKfQ",
+					"AQAAAAAAAAABAAAAAAAAAAAAAAAeCQAAAAAAAAAAAAAAAPC/"
+				],
+				[
+					49,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAYAsAAAAAAAAiCQAAaW1wb3J0IFJlYWN0LCB7IHVzZVJlZiwgdXNlRWZmZWN0IH0gZnJvbSAicmVhY3QiOwppbXBvcnQgeyBGYVNlYXJjaCwgRmFSZWdJbWFnZSB9IGZyb20gInJlYWN0LWljb25zL2ZhIjsKaW1wb3J0IE1pY0lucHV0IGZyb20gIi4vTWljSW5wdXQiOwppbXBvcnQgUHJvbXB0SGlzdG9yeSBmcm9tICIuL1Byb21wdEhpc3RvcnkiOwppbXBvcnQgIi4uL3N0eWxlcy9Qcm9tcHRGb3JtLmNzcyI7CgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBQcm9tcHRGb3JtKHsKICB0b2tlbiwKICBwcm9tcHQsCiAgc2V0UHJvbXB0LAogIHN1Ym1pdFByb21wdCwKICBoaXN0b3J5LAogIHNldFNob3dIaXN0b3J5LAogIHNob3dIaXN0b3J5LAogIGxhbmd1YWdlLAogIG9uU2VsZWN0SGlzdG9yeSwKfSkgewogIGNvbnN0IHByb21wdElucHV0UmVmID0gdXNlUmVmKG51bGwpOwoKICB1c2VFZmZlY3QoKCkgPT4gewogICAgaWYgKHRva2VuICYmIHByb21wdElucHV0UmVmLmN1cnJlbnQpIHsKICAgICAgcHJvbXB0SW5wdXRSZWYuY3VycmVudC5mb2N1cygpOwogICAgfQogIH0sIFt0b2tlbl0pOwoKICByZXR1cm4gKAogICAgPD4KICAgICAgPGZvcm0KICAgICAgICBvblN1Ym1pdD17KGUpID0+IHsKICAgICAgICAgIGUucHJldmVudERlZmF1bHQoKTsKICAgICAgICAgIGlmICh0eXBlb2Ygc3VibWl0UHJvbXB0ID09PSAiZnVuY3Rpb24iKSB7CiAgICAgICAgICAgIHN1Ym1pdFByb21wdCgpOwogICAgICAgICAgfSBlbHNlIHsKICAgICAgICAgICAgY29uc29sZS53YXJuKCJzdWJtaXRQcm9tcHQgZnVuY3Rpb24gaXMgbm90IGRlZmluZWQiKTsKICAgICAgICAgIH0KICAgICAgICB9fQogICAgICAgIGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWZvcm0iCiAgICAgICAgYXV0b0NvbXBsZXRlPSJvZmYiCiAgICAgICAgc3BlbGxDaGVjaz0iZmFsc2UiCiAgICAgID4KICAgICAgICA8ZGl2CiAgICAgICAgICBjbGFzc05hbWU9InByb21wdC1pbnB1dC1pY29uLWxlZnQiCiAgICAgICAgICBvbkNsaWNrPXsoKSA9PiBzZXRTaG93SGlzdG9yeSgodikgPT4gIXYpfQogICAgICAgICAgc3R5bGU9e3sgY3Vyc29yOiAicG9pbnRlciIgfX0KICAgICAgICA+CiAgICAgICAgICA8RmFTZWFyY2ggc2l6ZT17MjB9IC8+CiAgICAgICAgPC9kaXY+CiAgICAgICAgPGlucHV0CiAgICAgICAgICByZWY9e3Byb21wdElucHV0UmVmfQogICAgICAgICAgdHlwZT0idGV4dCIKICAgICAgICAgIHZhbHVlPXtwcm9tcHR9CiAgICAgICAgICBvbkNoYW5nZT17KGUpID0+IHNldFByb21wdChlLnRhcmdldC52YWx1ZSl9CiAgICAgICAgICBwbGFjZWhvbGRlcj17bGFuZ3VhZ2UgPT09ICJQTCIgPyAiV3Bpc3ogcHJvbXB0Li4uIiA6ICJFbnRlciBwcm9tcHQuLi4ifQogICAgICAgICAgY2xhc3NOYW1lPSJwcm9tcHQtaW5wdXQtZmllbGQiCiAgICAgICAgICAvLyBVc3VuacSZdG8gb25Gb2N1cywgxbxlYnkgaGlzdG9yaWEgc2nEmSBuaWUgb3R3aWVyYcWCYSBhdXRvbWF0eWN6bmllCiAgICAgICAgLz4KICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icHJvbXB0LWlucHV0LWljb24tcmlnaHQiPgogICAgICAgICAgPE1pY0lucHV0CiAgICAgICAgICAgIGxhbmd1YWdlPXtsYW5ndWFnZX0KICAgICAgICAgICAgb25UcmFuc2NyaXB0PXsodGV4dCkgPT4KICAgICAgICAgICAgICBzZXRQcm9tcHQoKHApID0+IChwID8gYCR7cH0gJHt0ZXh0fWAgOiB0ZXh0KSkKICAgICAgICAgICAgfQogICAgICAgICAgLz4KICAgICAgICAgIDxGYVJlZ0ltYWdlCiAgICAgICAgICAgIHNpemU9ezIwfQogICAgICAgICAgICBzdHlsZT17eyBvcGFjaXR5OiAwLjQsIGN1cnNvcjogIm5vdC1hbGxvd2VkIiwgbWFyZ2luTGVmdDogMTIgfX0KICAgICAgICAgIC8+CiAgICAgICAgPC9kaXY+CiAgICAgIDwvZm9ybT4KCiAgICAgIHtzaG93SGlzdG9yeSAmJiBoaXN0b3J5Lmxlbmd0aCA+IDAgJiYgKAogICAgICAgIDxQcm9tcHRIaXN0b3J5CiAgICAgICAgICBoaXN0b3J5PXtoaXN0b3J5fQogICAgICAgICAgb25TZWxlY3Q9eyhpdGVtKSA9PiB7CiAgICAgICAgICAgIGlmICh0eXBlb2Ygb25TZWxlY3RIaXN0b3J5ID09PSAiZnVuY3Rpb24iKSB7CiAgICAgICAgICAgICAgb25TZWxlY3RIaXN0b3J5KGl0ZW0pOwogICAgICAgICAgICB9IGVsc2UgewogICAgICAgICAgICAgIGNvbnNvbGUud2Fybigib25TZWxlY3RIaXN0b3J5IGZ1bmN0aW9uIGlzIG5vdCBkZWZpbmVkIik7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgcHJvbXB0SW5wdXRSZWYuY3VycmVudD8uZm9jdXMoKTsKICAgICAgICAgICAgc2V0U2hvd0hpc3RvcnkoZmFsc2UpOwogICAgICAgICAgfX0KICAgICAgICAvPgogICAgICApfQogICAgPC8+CiAgKTsKfQ",
+					"AQAAAAAAAAABAAAAAAAAAAAAAAAeCQAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		},
+		{
+			"file": "components/PromptHistory.js",
+			"settings":
+			{
+				"buffer_size": 830,
+				"encoding": "UTF-8",
+				"line_ending": "Unix"
+			},
+			"undo_stack":
+			[
+				[
+					7,
+					1,
+					"paste",
+					null,
+					"AQAAAAAAAAAAAAAAPgMAAAAAAAB0AgAAaW1wb3J0IFJlYWN0IGZyb20gInJlYWN0IjsKaW1wb3J0ICIuLi9zdHlsZXMvUHJvbXB0SGlzdG9yeS5jc3MiOwoKZXhwb3J0IGRlZmF1bHQgZnVuY3Rpb24gUHJvbXB0SGlzdG9yeSh7IGhpc3RvcnksIG9uU2VsZWN0IH0pIHsKICByZXR1cm4gKAogICAgPGRpdiBjbGFzc05hbWU9InByb21wdC1oaXN0b3J5LXdyYXBwZXIiPgogICAgICA8ZGl2IGNsYXNzTmFtZT0icHJvbXB0LWhpc3RvcnktY29udGFpbmVyIj4KICAgICAgICB7aGlzdG9yeS5sZW5ndGggPT09IDAgPyAoCiAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0icHJvbXB0LWhpc3RvcnktaXRlbSI+QnJhayBoaXN0b3JpaTwvZGl2PgogICAgICAgICkgOiAoCiAgICAgICAgICBoaXN0b3J5Lm1hcCgoaXRlbSwgaWR4KSA9PiAoCiAgICAgICAgICAgIDxkaXYKICAgICAgICAgICAgICBrZXk9e2lkeH0KICAgICAgICAgICAgICBjbGFzc05hbWU9InByb21wdC1oaXN0b3J5LWl0ZW0iCiAgICAgICAgICAgICAgb25DbGljaz17KCkgPT4gb25TZWxlY3QoaXRlbSl9CiAgICAgICAgICAgID4KICAgICAgICAgICAgICB7aXRlbX0KICAgICAgICAgICAgPC9kaXY+CiAgICAgICAgICApKQogICAgICAgICl9CiAgICAgIDwvZGl2PgogICAgPC9kaXY+CiAgKTsKfQ",
+					"AQAAAAAAAAABAAAAAAAAAAAAAAB0AgAAAAAAAAAAAAAAAPC/"
+				]
+			]
+		}
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/App.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/components/LoginForm.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/LoginForm.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/App.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/components/PromptHistory.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/components/PromptForm.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/PromptForm.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/nowy.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/PromptHistory.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/Dropdown.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/index.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/index.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/components/Scoreboard.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/Scoreboard.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/Auth.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/components/Auth.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/components/LanguageSwitcher.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/styles/LanguageSwitcher.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/PromptHistory.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/PromptHistory.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/App.css",
+		"/Users/grzegorzzajac/Documents/Projects/backup/1.3/murzin/frontend/src/App.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/UserDropdown.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/UserDropdown.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/backend/app.py",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/MicInput.jsx",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/App.test.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/README.md",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/dropdown.css",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/AuthContext.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/ProtectedRoute.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/LanguageSwitcher.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/InteractiveForm.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/Dashboard.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/Login.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/.env",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/frontend/src/LanguageContext.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzin/app.py",
+		"/Users/grzegorzzajac/Documents/Projects/app.py",
+		"/Users/grzegorzzajac/Documents/Projects/frontend/styles.css",
+		"/Users/grzegorzzajac/Documents/Projects/frontend/index.html",
+		"/Users/grzegorzzajac/Documents/Projects/frontend/dashboard.html",
+		"/Users/grzegorzzajac/Documents/Projects/frontend/app.js",
+		"/Users/grzegorzzajac/Documents/Projects/murzinspotter.py",
+		"/Users/grzegorzzajac/Documents/Projects/requirements.txt",
+		"/Users/grzegorzzajac/Documents/Projects/Procfile.py",
+		"/Users/grzegorzzajac/Desktop/U12040155_2023_2023.htm",
+		"/Users/grzegorzzajac/Desktop/U12040155_2024_2024.htm",
+		"/Users/grzegorzzajac/Downloads/U12040155_2023_2023.htm"
+	],
+	"find":
+	{
+		"height": 38.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "components/LoginPage.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1203,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								652,
+								652
+							]
+						],
+						"settings":
+						{
+							"auto_name": "import React, { useState } from \"react\";",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 175.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "components/MainApp.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 3078,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								3078
+							]
+						],
+						"settings":
+						{
+							"auto_name": "import React, { useState, useEffect } from \"react\"",
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "App.js",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 1154,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								721,
+								721
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "components/Auth.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 944,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								501,
+								501
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 3,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "components/PromptForm.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 2912,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2696,
+								2696
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1161.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 4,
+					"stack_multiselect": false,
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "components/PromptHistory.js",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 830,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								830,
+								830
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JavaScript.sublime-syntax",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 5,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"pinned_build_system": "",
+	"project": "App.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

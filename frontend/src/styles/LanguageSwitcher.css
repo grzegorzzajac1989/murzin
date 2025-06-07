@@ -1,0 +1,44 @@
+/* === VARIABLES === */
+:root {
+  --bg-color: #000;
+  --bg-container: #111;
+  --bg-input: #222;
+  --bg-input-hover: #444;
+  --text-color: #fff;
+  --text-muted: #bbb;
+  --shadow-color: rgba(255, 255, 255, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.5);
+  --transition-fast: 0.2s ease;
+}
+
+/* === LANGUAGE SWITCHER === */
+.lang-switcher {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  z-index: 1000;
+}
+
+.lang-button {
+  width: 40px;
+  height: 40px;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-color);
+  border-radius: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px;
+  transition: box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+.lang-button:hover {
+  background-color: #222;
+}
+
+.lang-button.active {
+  box-shadow: 0 0 5px 2px gray;
+}
