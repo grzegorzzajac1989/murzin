@@ -23,7 +23,7 @@ export default function App() {
   };
 
   return (
-    <Router basename="/frontend">
+    <Router basename="/">
       <Routes>
         <Route
           path="/login"
