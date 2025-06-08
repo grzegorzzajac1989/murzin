@@ -6,9 +6,24 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
   const passwordRef = useRef(null);
 
   useEffect(() => {
-    if (loginRef.current) {
-      loginRef.current.focus();
-    }
+    const handleInteraction = () => {
+      if (loginRef.current) {
+        loginRef.current.focus();
+      }
+      // Usuwamy listener po ustawieniu fokusa
+      document.removeEventListener("touchstart", handleInteraction);
+      document.removeEventListener("click", handleInteraction);
+    };
+
+    // Dodajemy zdarzenia, aby ustawić fokus na interakcję
+    document.addEventListener("touchstart", handleInteraction);
+    document.addEventListener("click", handleInteraction);
+
+    return () => {
+      // Czyszczenie listenerów
+      document.removeEventListener("touchstart", handleInteraction);
+      document.removeEventListener("click", handleInteraction);
+    };
   }, []);
 
   const handleKeyDown = (e, nextElement) => {
