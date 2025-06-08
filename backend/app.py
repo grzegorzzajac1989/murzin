@@ -9,6 +9,7 @@ from flask_cors import CORS, cross_origin
 from transformers import pipeline
 import threading
 import math
+import re
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http://localhost:3000"]}})
@@ -20,13 +21,13 @@ users, scores = {}, {}
 scores_lock = threading.Lock()
 
 presets = [
+    {"prompt": "murzin", "points": 1},
     {"prompt": "murzin na rowerze jadacy bez trzymanki", "points": 50},
     {"prompt": "murzin w samochodzie", "points": 10},
     {"prompt": "murzin w słuchawkach z mikrofonem", "points": 30},
 ]
 
 short_phrases = {
-    "murzin": 1,
     "gang murzinow": 5,
     "goraca murzinka": 10,
     "wysoki murzin": 2,
@@ -61,16 +62,40 @@ def get_preset_points(prompt):
     prompt_norm = normalize_text(prompt)
     total_points = 0
 
-    # Check exact substring matches
+    # Check multiplication pattern like "2x murzin" or "5 x murzin"
+    pattern = re.compile(r'^(\d+)\s*x\s*(.+)$')
+    match = pattern.match(prompt_norm)
+    if match:
+        multiplier = int(match.group(1))
+        phrase = match.group(2).strip()
+
+        points_for_phrase = 0
+        # Check presets substring
+        for preset in presets:
+            if preset['norm_prompt'] in phrase:
+                points_for_phrase += preset['points']
+        # Check short phrases substring
+        for phrase_sp, pts in short_phrases.items():
+            if phrase_sp in phrase:
+                points_for_phrase += pts
+        # Embedding similarity
+        phrase_emb = get_embedding(phrase)
+        for preset in presets:
+            sim = cosine_similarity(phrase_emb, preset['embedding'])
+            if sim > 0.8:
+                points_for_phrase += preset['points']
+
+        return multiplier * points_for_phrase
+
+    # Without multiplication, normal logic
     for preset in presets:
         if preset['norm_prompt'] in prompt_norm:
             total_points += preset['points']
 
     for phrase, pts in short_phrases.items():
-        if normalize_text(phrase) in prompt_norm:
+        if phrase in prompt_norm:
             total_points += pts
 
-    # Embedding similarity check
     prompt_emb = get_embedding(prompt_norm)
     for preset in presets:
         sim = cosine_similarity(prompt_emb, preset['embedding'])
