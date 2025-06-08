@@ -6,42 +6,23 @@ import jwt
 from functools import wraps
 from datetime import datetime, timedelta
 from flask_cors import CORS, cross_origin
-from transformers import pipeline
 import threading
-import math
 import re
+
+# Import danych z zewnętrznych plików
+from data.presets import presets
+from data.short_phrases import short_phrases
+from data.synonyms import synonimy_goraca, synonimy_murzin
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http://localhost:3000"]}})
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-secret-key')
 
-similarity_pipeline = pipeline("feature-extraction", model="prajjwal1/bert-tiny")
-
 users, scores = {}, {}
 scores_lock = threading.Lock()
 
-presets = [
-    {"prompt": "murzin", "points": 1},
-    {"prompt": "murzin na rowerze jadacy bez trzymanki", "points": 50},
-    {"prompt": "murzin w samochodzie", "points": 10},
-    {"prompt": "murzin w słuchawkach z mikrofonem", "points": 30},
-]
-
-short_phrases = {
-    "gang murzinow": 5,
-    "goraca murzinka": 10,
-    "wysoki murzin": 2,
-    "murzin karzel": 2,
-}
-
-synonimy_goraca = ["goraca", "gorąca", "hotowa", "hotówa"]
-synonimy_murzin = ["murzin", "murzyn", "murzynka", "murzinka", "murzinow"]
-
-variants = {}
-for w in synonimy_goraca:
-    variants[w] = "goraca"
-for w in synonimy_murzin:
-    variants[w] = "murzin"
+# Budowanie globalnego słownika wariantów synonimów
+variants = {**{w: "goraca" for w in synonimy_goraca}, **{w: "murzin" for w in synonimy_murzin}}
 
 def normalize_text(text):
     text = text.lower()
@@ -50,29 +31,15 @@ def normalize_text(text):
 
 def correct_variants(text):
     words = text.split()
-    corrected_words = [variants.get(word, word) for word in words]
-    return ' '.join(corrected_words)
+    return ' '.join(variants.get(word, word) for word in words)
 
-def get_embedding(text):
-    return [0] * 768
-
-def cosine_similarity(vec1, vec2):
-    dot = sum(a * b for a, b in zip(vec1, vec2))
-    norm1 = math.sqrt(sum(a * a for a in vec1))
-    norm2 = math.sqrt(sum(b * b for b in vec2))
-    if norm1 == 0 or norm2 == 0:
-        return 0
-    return dot / (norm1 * norm2)
-
-for preset in presets:
-    preset['norm_prompt'] = normalize_text(preset['prompt'])
-    preset['embedding'] = get_embedding(preset['norm_prompt'])
-
-def get_preset_points(prompt):
+def get_preset_points(prompt: str) -> int:
     prompt_norm = normalize_text(prompt)
     prompt_norm = correct_variants(prompt_norm)
     total_points = 0
+    counted_phrases = set()
 
+    # Dziel na frazy rozdzielone "+" lub "i"
     phrases = re.split(r'\s*\+\s*|\s+i\s+', prompt_norm)
 
     for phrase in phrases:
@@ -80,31 +47,37 @@ def get_preset_points(prompt):
         if not phrase:
             continue
 
-        m = re.match(r'(\d+)x\s+(.+)', phrase)
         count = 1
+        m = re.match(r'(\d+)x\s+(.+)', phrase)
         base_phrase = phrase
         if m:
             count = int(m.group(1))
-            base_phrase = m.group(2)
+            base_phrase = m.group(2).strip()
 
+        # Unikaj podwójnego liczenia tej samej frazy
+        key = f"{count}x {base_phrase}"
+        if key in counted_phrases:
+            continue
+        counted_phrases.add(key)
+
+        # Sprawdź dokładne dopasowania presetów
         for preset in presets:
-            if preset['norm_prompt'] == base_phrase:
-                total_points += preset['points'] * count
+            if preset.get('norm_prompt') == base_phrase:
+                total_points += preset.get('points', 0) * count
 
-        for short_phrase, pts in short_phrases.items():
-            if short_phrase == base_phrase:
-                total_points += pts * count
+        # Sprawdź dopasowania short_phrases
+        if base_phrase in short_phrases:
+            total_points += short_phrases[base_phrase] * count
 
+        # Dodatkowe punkty za frazę zawierającą oba słowa "murzin" i "goraca"
         if "murzin" in base_phrase and "goraca" in base_phrase:
             total_points += short_phrases.get("goraca murzinka", 0) * count
 
-        phrase_emb = get_embedding(base_phrase)
-        for preset in presets:
-            sim = cosine_similarity(phrase_emb, preset['embedding'])
-            if sim > 0.8:
-                total_points += preset['points'] * count
-
     return total_points
+
+# Przygotowanie presetów - normalizacja (embedding usunięty, bo placeholder)
+for preset in presets:
+    preset['norm_prompt'] = normalize_text(preset['prompt'])
 
 def token_required(role=None):
     def decorator(f):
@@ -188,20 +161,17 @@ def set_role(_):
 @cross_origin(origin=["https://murzing.onrender.com", "http://localhost:3000"])
 @token_required()
 def analyze_prompt(user):
+    data = request.get_json() or {}
+    prompt = data.get('prompt', '').strip()
+    if not prompt:
+        return jsonify({"error": "Prompt is required"}), 400
     try:
-        data = request.get_json() or {}
-        prompt = data.get('prompt', '').strip()
-        if not prompt:
-            return jsonify({"error": "Prompt is required"}), 400
-
         points_earned = get_preset_points(prompt)
         with scores_lock:
             scores[user] = scores.get(user, 0) + points_earned
             total = scores[user]
-
         message = f"Prompt analyzed! You earned {points_earned} points. Total: {total}"
         return jsonify({"message": message, "points": points_earned, "total": total}), 200
-
     except Exception as e:
         print("Analyze prompt error:", e)
         return jsonify({"error": "Error analyzing prompt"}), 500
