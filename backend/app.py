@@ -62,7 +62,7 @@ def get_preset_points(prompt):
     prompt_norm = normalize_text(prompt)
     total_points = 0
 
-    # Check multiplication pattern like "2x murzin" or "5 x murzin"
+    # Sprawdzenie mnożnika (np. "2x murzin")
     pattern = re.compile(r'^(\d+)\s*x\s*(.+)$')
     match = pattern.match(prompt_norm)
     if match:
@@ -70,24 +70,25 @@ def get_preset_points(prompt):
         phrase = match.group(2).strip()
 
         points_for_phrase = 0
-        # Check presets substring
+        # Dosłowne dopasowania w presety
         for preset in presets:
             if preset['norm_prompt'] in phrase:
                 points_for_phrase += preset['points']
-        # Check short phrases substring
+        # Dosłowne dopasowania w short phrases
         for phrase_sp, pts in short_phrases.items():
             if phrase_sp in phrase:
                 points_for_phrase += pts
-        # Embedding similarity
-        phrase_emb = get_embedding(phrase)
-        for preset in presets:
-            sim = cosine_similarity(phrase_emb, preset['embedding'])
-            if sim > 0.8:
-                points_for_phrase += preset['points']
+        # Embedding similarity tylko jeśli dosłowne dopasowania nie znaleziono
+        if points_for_phrase == 0:
+            phrase_emb = get_embedding(phrase)
+            for preset in presets:
+                sim = cosine_similarity(phrase_emb, preset['embedding'])
+                if sim > 0.8:
+                    points_for_phrase += preset['points']
 
         return multiplier * points_for_phrase
 
-    # Without multiplication, normal logic
+    # Bez mnożnika: najpierw dosłowne dopasowania
     for preset in presets:
         if preset['norm_prompt'] in prompt_norm:
             total_points += preset['points']
@@ -96,11 +97,13 @@ def get_preset_points(prompt):
         if phrase in prompt_norm:
             total_points += pts
 
-    prompt_emb = get_embedding(prompt_norm)
-    for preset in presets:
-        sim = cosine_similarity(prompt_emb, preset['embedding'])
-        if sim > 0.8:
-            total_points += preset['points']
+    # Jeśli brak dosłownych dopasowań, wtedy embedding similarity
+    if total_points == 0:
+        prompt_emb = get_embedding(prompt_norm)
+        for preset in presets:
+            sim = cosine_similarity(prompt_emb, preset['embedding'])
+            if sim > 0.8:
+                total_points += preset['points']
 
     return total_points
 
