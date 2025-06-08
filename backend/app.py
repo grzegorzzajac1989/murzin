@@ -34,16 +34,29 @@ short_phrases = {
     "murzin karzel": 2,
 }
 
+# Synonimy / odmiany grupowo
+synonimy_goraca = ["goraca", "gorąca", "hotowa", "hotówa"]
+synonimy_murzin = ["murzin", "murzyn", "murzynka", "murzinka", "murzinow"]
+
+variants = {}
+for w in synonimy_goraca:
+    variants[w] = "goraca"
+for w in synonimy_murzin:
+    variants[w] = "murzin"
+
 def normalize_text(text):
     text = text.lower()
     text = unicodedata.normalize('NFD', text)
     return ''.join(c for c in text if unicodedata.category(c) != 'Mn')
 
+def correct_variants(text):
+    words = text.split()
+    corrected_words = [variants.get(word, word) for word in words]
+    return ' '.join(corrected_words)
+
 def get_embedding(text):
-    emb = similarity_pipeline(text)[0]
-    # Embedding shape: [1, seq_len, hidden_dim], take mean over tokens
-    emb_vector = [sum(dim)/len(dim) for dim in zip(*emb)]
-    return emb_vector
+    # tymczasowo embedding na zero, żeby mieć kontrolę nad punktacją
+    return [0]*768
 
 def cosine_similarity(vec1, vec2):
     dot = sum(a*b for a,b in zip(vec1, vec2))
@@ -60,50 +73,41 @@ for preset in presets:
 
 def get_preset_points(prompt):
     prompt_norm = normalize_text(prompt)
+    prompt_norm = correct_variants(prompt_norm)
     total_points = 0
 
-    # Sprawdzenie mnożnika (np. "2x murzin")
-    pattern = re.compile(r'^(\d+)\s*x\s*(.+)$')
-    match = pattern.match(prompt_norm)
-    if match:
-        multiplier = int(match.group(1))
-        phrase = match.group(2).strip()
+    # Rozbicie prompta na frazy wg "+" lub "i"
+    phrases = re.split(r'\s*\+\s*|\s+i\s+', prompt_norm)
 
-        points_for_phrase = 0
-        # Dosłowne dopasowania w presety
+    for phrase in phrases:
+        phrase = phrase.strip()
+        if not phrase:
+            continue
+
+        # Obsługa mnożenia, np. "3x murzin"
+        m = re.match(r'(\d+)x\s+(.+)', phrase)
+        count = 1
+        base_phrase = phrase
+        if m:
+            count = int(m.group(1))
+            base_phrase = m.group(2)
+
+        # Dopasowanie dosłowne w presets
         for preset in presets:
-            if preset['norm_prompt'] in phrase:
-                points_for_phrase += preset['points']
-        # Dosłowne dopasowania w short phrases
-        for phrase_sp, pts in short_phrases.items():
-            if phrase_sp in phrase:
-                points_for_phrase += pts
-        # Embedding similarity tylko jeśli dosłowne dopasowania nie znaleziono
-        if points_for_phrase == 0:
-            phrase_emb = get_embedding(phrase)
-            for preset in presets:
-                sim = cosine_similarity(phrase_emb, preset['embedding'])
-                if sim > 0.8:
-                    points_for_phrase += preset['points']
+            if preset['norm_prompt'] == base_phrase:
+                total_points += preset['points'] * count
 
-        return multiplier * points_for_phrase
+        # Dopasowanie dosłowne w short_phrases
+        for short_phrase, pts in short_phrases.items():
+            if short_phrase == base_phrase:
+                total_points += pts * count
 
-    # Bez mnożnika: najpierw dosłowne dopasowania
-    for preset in presets:
-        if preset['norm_prompt'] in prompt_norm:
-            total_points += preset['points']
-
-    for phrase, pts in short_phrases.items():
-        if phrase in prompt_norm:
-            total_points += pts
-
-    # Jeśli brak dosłownych dopasowań, wtedy embedding similarity
-    if total_points == 0:
-        prompt_emb = get_embedding(prompt_norm)
+        # Dopasowanie przez embedding similarity (nieaktywne, embedding zero)
+        phrase_emb = get_embedding(base_phrase)
         for preset in presets:
-            sim = cosine_similarity(prompt_emb, preset['embedding'])
+            sim = cosine_similarity(phrase_emb, preset['embedding'])
             if sim > 0.8:
-                total_points += preset['points']
+                total_points += preset['points'] * count
 
     return total_points
 
