@@ -1,42 +1,15 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import "../styles/Auth.css";
 
 export default function Auth({ login, setLogin, password, setPassword, auth, language }) {
-  const loginRef = useRef(null);
   const passwordRef = useRef(null);
-
-  useEffect(() => {
-    const setFocus = () => {
-      if (loginRef.current) {
-        loginRef.current.focus();
-      }
-    };
-
-    // Ustawienie fokusa z minimalnym opóźnieniem, aby działało na wszystkich przeglądarkach
-    setTimeout(setFocus, 100);
-
-    // Dodanie listenera w przypadku, gdy automatyczne fokusowanie nie zadziała
-    const handleInteraction = () => {
-      setFocus();
-      document.removeEventListener("touchstart", handleInteraction);
-      document.removeEventListener("click", handleInteraction);
-    };
-
-    document.addEventListener("touchstart", handleInteraction);
-    document.addEventListener("click", handleInteraction);
-
-    return () => {
-      document.removeEventListener("touchstart", handleInteraction);
-      document.removeEventListener("click", handleInteraction);
-    };
-  }, []);
 
   const handleKeyDown = (e, nextElement) => {
     if (e.key === "Enter") {
       if (nextElement) {
         nextElement.focus();
       } else {
-        auth();
+        auth(); // Wywołanie funkcji logowania, gdy jesteśmy na polu hasła
       }
     }
   };
@@ -49,7 +22,7 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
         onChange={e => setLogin(e.target.value)}
         onKeyDown={e => handleKeyDown(e, passwordRef.current)}
         className="auth-input"
-        ref={loginRef}
+        autoFocus
       />
       <input
         type="password"
