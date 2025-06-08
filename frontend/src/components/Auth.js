@@ -1,15 +1,22 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import "../styles/Auth.css";
 
 export default function Auth({ login, setLogin, password, setPassword, auth, language }) {
+  const loginRef = useRef(null);
   const passwordRef = useRef(null);
+
+  useEffect(() => {
+    if (loginRef.current) {
+      loginRef.current.focus();
+    }
+  }, []);
 
   const handleKeyDown = (e, nextElement) => {
     if (e.key === "Enter") {
       if (nextElement) {
         nextElement.focus();
       } else {
-        auth(); // Wywołanie funkcji logowania, gdy jesteśmy na polu hasła
+        auth();
       }
     }
   };
@@ -22,7 +29,7 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
         onChange={e => setLogin(e.target.value)}
         onKeyDown={e => handleKeyDown(e, passwordRef.current)}
         className="auth-input"
-        autoFocus
+        ref={loginRef}
       />
       <input
         type="password"
