@@ -14,7 +14,7 @@ export default function PromptForm({
   showHistory,
   language,
   onSelectHistory,
-  loading, // Nowy prop
+  loading,
 }) {
   const containerRef = useRef(null);
   const promptInputRef = useRef(null);
@@ -27,10 +27,7 @@ export default function PromptForm({
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (
-        containerRef.current && 
-        !containerRef.current.contains(event.target)
-      ) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
         setShowHistory(false);
       }
     }
@@ -52,6 +49,9 @@ export default function PromptForm({
       await submitPrompt();
     }
     setShowHistory(false);
+    setTimeout(() => {
+      promptInputRef.current?.focus();
+    }, 0);
   };
 
   return (
@@ -107,7 +107,9 @@ export default function PromptForm({
             } else {
               console.warn("onSelectHistory function is not defined");
             }
-            promptInputRef.current?.focus();
+            setTimeout(() => {
+              promptInputRef.current?.focus();
+            }, 0);
             setShowHistory(false);
           }}
         />

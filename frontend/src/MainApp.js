@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./styles/App.css";
 import Header from "./components/Header/Header";
 import Scoreboard from "./components/Scoreboard";
@@ -15,6 +15,11 @@ export default function MainApp({ token, login, onLogin, logout }) {
   );
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const promptInputRef = useRef(null);
+  const messageTimeoutRef = useRef(null);
+  const lastSubmitRef = useRef(0);
 
   useEffect(() => {
     if (token) {
@@ -33,17 +38,54 @@ export default function MainApp({ token, login, onLogin, logout }) {
         })
         .catch(() => {});
     }
-  }, [token]);
+  }, [token, logout]);
 
   useEffect(() => {
     localStorage.setItem("history", JSON.stringify(history));
   }, [history]);
 
+  useEffect(() => {
+    if (!loading && promptInputRef.current) {
+      promptInputRef.current.focus();
+    }
+  }, [loading]);
+
+  // Automatyczne ukrywanie komunikatu po 3 sekundach
+  useEffect(() => {
+    if (message) {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+      messageTimeoutRef.current = setTimeout(() => {
+        setMessage(null);
+      }, 3000);
+    }
+    return () => {
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+      }
+    };
+  }, [message]);
+
   const submitPrompt = async () => {
+    const now = Date.now();
+    if (loading) return;
+    if (now - lastSubmitRef.current < 3000) {
+      setMessage(
+        language === "PL"
+          ? "Proszę odczekać chwilę przed kolejnym wysłaniem."
+          : "Please wait a moment before submitting again."
+      );
+      return;
+    }
+
     const trimmed = prompt.trim();
     if (!trimmed) return;
 
+    lastSubmitRef.current = now;
     setLoading(true);
+    setMessage(null);
+
     try {
       const res = await fetch(`${API_URL}/analyze_prompt`, {
         method: "POST",
@@ -55,7 +97,7 @@ export default function MainApp({ token, login, onLogin, logout }) {
       });
 
       if (res.status === 401) {
-        alert(
+        setMessage(
           language === "PL"
             ? "Brak autoryzacji. Zaloguj się ponownie."
             : "Unauthorized. Please login again."
@@ -71,13 +113,12 @@ export default function MainApp({ token, login, onLogin, logout }) {
           return newHistory;
         });
         setPrompt("");
-        alert(
+        setMessage(
           language === "PL"
             ? `Prompt przeanalizowany! Zdobyłeś ${points} punktów. Razem: ${total}`
             : `Prompt analyzed! You earned ${points} points. Total: ${total}`
         );
 
-        // Odśwież scoreboard po udanym wysłaniu
         const scoreboardRes = await fetch(`${API_URL}/scoreboard`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -86,16 +127,12 @@ export default function MainApp({ token, login, onLogin, logout }) {
           setScoreboard(updatedScoreboard);
         }
       } else {
-        alert(
-          language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt."
-        );
+        setMessage(language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt.");
       }
     } catch {
-      alert(
-        language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt."
-      );
+      setMessage(language === "PL" ? "Błąd analizy prompta." : "Error analyzing prompt.");
     } finally {
-      setShowHistory(true); // Przenieś tutaj, aby uniknąć szybkiego zamknięcia
+      setShowHistory(true);
       setLoading(false);
     }
   };
@@ -110,6 +147,18 @@ export default function MainApp({ token, login, onLogin, logout }) {
       />
 
       <Scoreboard scoreboard={scoreboard} language={language} />
+
+      {message && (
+        <div
+          className="message-banner"
+          style={{ padding: "10px", background: "#f0f0f0", marginBottom: "10px" }}
+          role="alert"
+          aria-live="assertive"
+        >
+          {message}
+        </div>
+      )}
+
       <PromptForm
         token={token}
         prompt={prompt}
@@ -124,6 +173,7 @@ export default function MainApp({ token, login, onLogin, logout }) {
         }}
         language={language}
         loading={loading}
+        inputRef={promptInputRef}
       />
     </div>
   );
