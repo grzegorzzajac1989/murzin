@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import "../styles/Auth.css";
 
 export default function Auth({ login, setLogin, password, setPassword, auth, language }) {
@@ -6,8 +6,9 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
   const passwordRef = useRef(null);
 
   useEffect(() => {
-    // Wymuszamy fokus na polu loginu po zamontowaniu komponentu
-    if (loginRef.current) {
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+    if (isSafari && loginRef.current) {
       loginRef.current.focus();
     }
   }, []);
@@ -30,7 +31,8 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
         onChange={e => setLogin(e.target.value)}
         onKeyDown={e => handleKeyDown(e, passwordRef.current)}
         className="auth-input"
-        ref={loginRef} // Dodajemy referencję do pola loginu
+        ref={loginRef} // Używamy referencji, aby wymusić fokus
+        autoFocus
       />
       <input
         type="password"
@@ -39,7 +41,7 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
         onChange={e => setPassword(e.target.value)}
         onKeyDown={e => handleKeyDown(e, null)}
         className="auth-input"
-        ref={passwordRef} // Dodajemy referencję do pola hasła
+        ref={passwordRef}
       />
       <button onClick={auth} className="auth-button">
         {language === "PL" ? "Zaloguj / Zarejestruj" : "Log In / Register"}
