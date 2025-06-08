@@ -6,21 +6,26 @@ export default function Auth({ login, setLogin, password, setPassword, auth, lan
   const passwordRef = useRef(null);
 
   useEffect(() => {
-    const handleInteraction = () => {
+    const setFocus = () => {
       if (loginRef.current) {
         loginRef.current.focus();
       }
-      // Usuwamy listener po ustawieniu fokusa
+    };
+
+    // Ustawienie fokusa z minimalnym opóźnieniem, aby działało na wszystkich przeglądarkach
+    setTimeout(setFocus, 100);
+
+    // Dodanie listenera w przypadku, gdy automatyczne fokusowanie nie zadziała
+    const handleInteraction = () => {
+      setFocus();
       document.removeEventListener("touchstart", handleInteraction);
       document.removeEventListener("click", handleInteraction);
     };
 
-    // Dodajemy zdarzenia, aby ustawić fokus na interakcję
     document.addEventListener("touchstart", handleInteraction);
     document.addEventListener("click", handleInteraction);
 
     return () => {
-      // Czyszczenie listenerów
       document.removeEventListener("touchstart", handleInteraction);
       document.removeEventListener("click", handleInteraction);
     };
