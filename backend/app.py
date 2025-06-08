@@ -34,7 +34,6 @@ short_phrases = {
     "murzin karzel": 2,
 }
 
-# Synonimy / odmiany grupowo
 synonimy_goraca = ["goraca", "gorąca", "hotowa", "hotówa"]
 synonimy_murzin = ["murzin", "murzyn", "murzynka", "murzinka", "murzinow"]
 
@@ -55,18 +54,16 @@ def correct_variants(text):
     return ' '.join(corrected_words)
 
 def get_embedding(text):
-    # tymczasowo embedding na zero, żeby mieć kontrolę nad punktacją
-    return [0]*768
+    return [0] * 768
 
 def cosine_similarity(vec1, vec2):
-    dot = sum(a*b for a,b in zip(vec1, vec2))
-    norm1 = math.sqrt(sum(a*a for a in vec1))
-    norm2 = math.sqrt(sum(b*b for b in vec2))
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    norm1 = math.sqrt(sum(a * a for a in vec1))
+    norm2 = math.sqrt(sum(b * b for b in vec2))
     if norm1 == 0 or norm2 == 0:
         return 0
     return dot / (norm1 * norm2)
 
-# Precompute embeddings for presets once
 for preset in presets:
     preset['norm_prompt'] = normalize_text(preset['prompt'])
     preset['embedding'] = get_embedding(preset['norm_prompt'])
@@ -76,7 +73,6 @@ def get_preset_points(prompt):
     prompt_norm = correct_variants(prompt_norm)
     total_points = 0
 
-    # Rozbicie prompta na frazy wg "+" lub "i"
     phrases = re.split(r'\s*\+\s*|\s+i\s+', prompt_norm)
 
     for phrase in phrases:
@@ -84,7 +80,6 @@ def get_preset_points(prompt):
         if not phrase:
             continue
 
-        # Obsługa mnożenia, np. "3x murzin"
         m = re.match(r'(\d+)x\s+(.+)', phrase)
         count = 1
         base_phrase = phrase
@@ -92,17 +87,17 @@ def get_preset_points(prompt):
             count = int(m.group(1))
             base_phrase = m.group(2)
 
-        # Dopasowanie dosłowne w presets
         for preset in presets:
             if preset['norm_prompt'] == base_phrase:
                 total_points += preset['points'] * count
 
-        # Dopasowanie dosłowne w short_phrases
         for short_phrase, pts in short_phrases.items():
             if short_phrase == base_phrase:
                 total_points += pts * count
 
-        # Dopasowanie przez embedding similarity (nieaktywne, embedding zero)
+        if "murzin" in base_phrase and "goraca" in base_phrase:
+            total_points += short_phrases.get("goraca murzinka", 0) * count
+
         phrase_emb = get_embedding(base_phrase)
         for preset in presets:
             sim = cosine_similarity(phrase_emb, preset['embedding'])
