@@ -38,21 +38,28 @@ def get_preset_points(prompt: str) -> int:
     phrase_count = {}
     words = prompt_norm.split()
 
-    # Lista fraz już przypisanych, aby uniknąć nakładania się
     assigned_spans = []
 
     for n in range(len(words), 0, -1):  # od dłuższych fraz do krótszych
         for i in range(len(words) - n + 1):
-            phrase = ' '.join(words[i:i + n])
+            phrase_words = words[i:i + n]
+            phrase = ' '.join(phrase_words)
+            reversed_phrase = ' '.join(reversed(phrase_words))
+
+            matched_phrase = None
             if phrase in short_phrases:
-                # Sprawdź, czy zakres słów nie jest już pokryty przez dłuższą frazę
+                matched_phrase = phrase
+            elif reversed_phrase in short_phrases:
+                matched_phrase = reversed_phrase
+
+            if matched_phrase:
                 overlap = False
                 for start, end in assigned_spans:
-                    if not (i + n - 1 < start or i > end):  # zachodzi nakładanie
+                    if not (i + n - 1 < start or i > end):
                         overlap = True
                         break
                 if not overlap:
-                    phrase_count[phrase] = phrase_count.get(phrase, 0) + 1
+                    phrase_count[matched_phrase] = phrase_count.get(matched_phrase, 0) + 1
                     assigned_spans.append((i, i + n - 1))
 
     total_points = 0
