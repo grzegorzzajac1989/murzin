@@ -11,7 +11,7 @@ import threading
 # Import danych z zewnętrznych plików
 from data.presets import presets as imported_presets
 from data.short_phrases import short_phrases as imported_short_phrases
-from data.synonyms import synonimy_goracy, synonimy_murzin
+from data.synonyms import synonimy_goraca, synonimy_murzin
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http://localhost:3000"]}})
@@ -35,7 +35,6 @@ def correct_variants(text):
 # Normalizacja danych presetów i short_phrases
 presets = [{**preset, 'norm_prompt': normalize_text(preset['prompt'])} for preset in imported_presets]
 short_phrases = {normalize_text(k): v for k, v in imported_short_phrases.items()}
-
 
 def get_preset_points(prompt: str) -> int:
     prompt_norm = normalize_text(prompt)
@@ -73,7 +72,6 @@ def get_preset_points(prompt: str) -> int:
 
     return total_points
 
-
 def token_required(role=None):
     def decorator(f):
         @wraps(f)
@@ -96,11 +94,9 @@ def token_required(role=None):
         return decorated
     return decorator
 
-
 @app.route('/', methods=['GET'])
 def home():
     return "API działa", 200
-
 
 @app.route('/auth', methods=['POST'])
 def auth():
@@ -119,7 +115,6 @@ def auth():
     token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({"message": "Account created and logged in", "token": token}), 201
 
-
 @app.route('/add_points', methods=['POST'])
 @token_required()
 def add_points(user):
@@ -132,13 +127,11 @@ def add_points(user):
         total = scores[target]
     return jsonify({"message": f"Added {points} points for {target}", "total": total}), 200
 
-
 @app.route('/scoreboard', methods=['GET'])
 def scoreboard():
     with scores_lock:
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return jsonify([{"user": u, "score": s} for u, s in sorted_scores]), 200
-
 
 @app.route('/reset', methods=['POST'])
 @token_required(role='admin')
@@ -146,7 +139,6 @@ def reset(_):
     with scores_lock:
         scores.clear()
     return jsonify({"message": "Scores reset"}), 200
-
 
 @app.route('/set_role', methods=['POST'])
 @token_required(role='admin')
@@ -157,7 +149,6 @@ def set_role(_):
         return jsonify({"error": "Invalid user or role"}), 400
     users[user]['role'] = role
     return jsonify({"message": f"Role of {user} set to {role}"}), 200
-
 
 @app.route('/analyze_prompt', methods=['POST'])
 @cross_origin(origin=["https://murzing.onrender.com", "http://localhost:3000"])
@@ -177,7 +168,6 @@ def analyze_prompt(user):
     except Exception as e:
         print("Analyze prompt error:", e)
         return jsonify({"error": "Error analyzing prompt"}), 500
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
