@@ -11,7 +11,7 @@ import threading
 # Import danych z zewnętrznych plików
 from data.presets import presets as imported_presets
 from data.short_phrases import short_phrases as imported_short_phrases
-from data.synonyms import synonimy_goraca, synonimy_murzin
+from data.synonyms import synonimy_goracy, synonimy_murzin
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": ["https://murzing.onrender.com", "http://localhost:3000"]}})

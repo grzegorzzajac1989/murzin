@@ -13,7 +13,6 @@ presets = [
     {"prompt": "murzin na nartach", "points": 50},
     {"prompt": "murzin w kawiarni", "points": 8},
     {"prompt": "murzin w parku", "points": 6},
-    {"prompt": "murzin w teatrze", "points": 15},
     {"prompt": "murzin w samolocie", "points": 20},
     {"prompt": "murzin w metrze", "points": 10},
     {"prompt": "murzin z psem", "points": 10},
