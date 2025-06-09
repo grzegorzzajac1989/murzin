@@ -18,7 +18,6 @@ short_phrases = {
     "murzin w ogrodzie": 8,
     "murzin z krawatem": 7,
     "murzin w śniegu": 15,
-    "murzin na plaży": 5,
     "murzin w stroju kąpielowym": 6,
     "murzin w okularach do nurkowania": 8,
     "murzin na trampolinie": 12,

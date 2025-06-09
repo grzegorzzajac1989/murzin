@@ -7,11 +7,10 @@ from functools import wraps
 from datetime import datetime, timedelta
 from flask_cors import CORS, cross_origin
 import threading
-import re
 
 # Import danych z zewnętrznych plików
-from data.presets import presets
-from data.short_phrases import short_phrases
+from data.presets import presets as imported_presets
+from data.short_phrases import short_phrases as imported_short_phrases
 from data.synonyms import synonimy_goraca, synonimy_murzin
 
 app = Flask(__name__)
@@ -22,7 +21,7 @@ users, scores = {}, {}
 scores_lock = threading.Lock()
 
 # Budowanie globalnego słownika wariantów synonimów
-variants = {**{w: "goraca" for w in synonimy_goraca}, **{w: "murzin" for w in synonimy_murzin}}
+variants = {**{w: "goracy" for w in synonimy_goraca}, **{w: "murzin" for w in synonimy_murzin}}
 
 def normalize_text(text):
     text = text.lower()
@@ -33,51 +32,47 @@ def correct_variants(text):
     words = text.split()
     return ' '.join(variants.get(word, word) for word in words)
 
+# Normalizacja danych presetów i short_phrases
+presets = [{**preset, 'norm_prompt': normalize_text(preset['prompt'])} for preset in imported_presets]
+short_phrases = {normalize_text(k): v for k, v in imported_short_phrases.items()}
+
+
 def get_preset_points(prompt: str) -> int:
     prompt_norm = normalize_text(prompt)
     prompt_norm = correct_variants(prompt_norm)
+
     total_points = 0
     counted_phrases = set()
 
-    # Dziel na frazy rozdzielone "+" lub "i"
-    phrases = re.split(r'\s*\+\s*|\s+i\s+', prompt_norm)
+    # Dopasowanie z separatorami i bez separatorów
+    subphrases = prompt_norm.split('+') if '+' in prompt_norm else [prompt_norm]
 
-    for phrase in phrases:
-        phrase = phrase.strip()
-        if not phrase:
-            continue
+    for subphrase in subphrases:
+        subphrase = subphrase.strip()
+        words = subphrase.split()
 
-        count = 1
-        m = re.match(r'(\d+)x\s+(.+)', phrase)
-        base_phrase = phrase
-        if m:
-            count = int(m.group(1))
-            base_phrase = m.group(2).strip()
+        # Analiza bez separatorów (Nx)
+        for n in range(1, len(words) + 1):
+            for i in range(len(words) - n + 1):
+                nx_phrase = ' '.join(words[i:i + n])
+                if nx_phrase in short_phrases and nx_phrase not in counted_phrases:
+                    total_points += short_phrases[nx_phrase]
+                    counted_phrases.add(nx_phrase)
 
-        # Unikaj podwójnego liczenia tej samej frazy
-        key = f"{count}x {base_phrase}"
-        if key in counted_phrases:
-            continue
-        counted_phrases.add(key)
+        # Dopasowanie dla pełnych fraz z short_phrases
+        if subphrase in short_phrases and subphrase not in counted_phrases:
+            total_points += short_phrases[subphrase]
+            counted_phrases.add(subphrase)
 
-        # Sprawdź dokładne dopasowania presetów
-        for preset in presets:
-            if preset.get('norm_prompt') == base_phrase:
-                total_points += preset.get('points', 0) * count
-
-        # Sprawdź dopasowania short_phrases
-        if base_phrase in short_phrases:
-            total_points += short_phrases[base_phrase] * count
-
-        # Dodatkowe punkty za frazę zawierającą oba słowa "murzin" i "goraca"
-        if "murzin" in base_phrase and "goraca" in base_phrase:
-            total_points += short_phrases.get("goraca murzinka", 0) * count
+    # Dodatkowa logika za frazy zawierające "murzin" i "goraca"
+    if 'murzin' in prompt_norm and 'goracy' in prompt_norm:
+        extra_points = short_phrases.get('goracy murzinka', 0)
+        if 'goracy murzinka' not in counted_phrases:
+            total_points += extra_points
+            counted_phrases.add('goracy murzinka')
 
     return total_points
 
-# Przygotowanie presetów - normalizacja (embedding usunięty, bo placeholder)
-for preset in presets:
-    preset['norm_prompt'] = normalize_text(preset['prompt'])
 
 def token_required(role=None):
     def decorator(f):
@@ -101,9 +96,11 @@ def token_required(role=None):
         return decorated
     return decorator
 
+
 @app.route('/', methods=['GET'])
 def home():
     return "API działa", 200
+
 
 @app.route('/auth', methods=['POST'])
 def auth():
@@ -122,6 +119,7 @@ def auth():
     token = jwt.encode({'user': login, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'], algorithm="HS256")
     return jsonify({"message": "Account created and logged in", "token": token}), 201
 
+
 @app.route('/add_points', methods=['POST'])
 @token_required()
 def add_points(user):
@@ -134,11 +132,13 @@ def add_points(user):
         total = scores[target]
     return jsonify({"message": f"Added {points} points for {target}", "total": total}), 200
 
+
 @app.route('/scoreboard', methods=['GET'])
 def scoreboard():
     with scores_lock:
         sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)
     return jsonify([{"user": u, "score": s} for u, s in sorted_scores]), 200
+
 
 @app.route('/reset', methods=['POST'])
 @token_required(role='admin')
@@ -146,6 +146,7 @@ def reset(_):
     with scores_lock:
         scores.clear()
     return jsonify({"message": "Scores reset"}), 200
+
 
 @app.route('/set_role', methods=['POST'])
 @token_required(role='admin')
@@ -156,6 +157,7 @@ def set_role(_):
         return jsonify({"error": "Invalid user or role"}), 400
     users[user]['role'] = role
     return jsonify({"message": f"Role of {user} set to {role}"}), 200
+
 
 @app.route('/analyze_prompt', methods=['POST'])
 @cross_origin(origin=["https://murzing.onrender.com", "http://localhost:3000"])
@@ -175,6 +177,7 @@ def analyze_prompt(user):
     except Exception as e:
         print("Analyze prompt error:", e)
         return jsonify({"error": "Error analyzing prompt"}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
