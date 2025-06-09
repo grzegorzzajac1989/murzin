@@ -1,2 +1,2 @@
-synonimy_goraca = ["goraca", "gorąca", "hotowa", "hotówa", "goracy"]
-synonimy_murzin = ["murzin", "murzyn", "murzynka", "murzinka", "murzinow"]
+synonimy_goracy = ["goraca", "hotowa", "goracy"]
+synonimy_murzin = ["murzyn", "murzynka", "murzinow", "murzynów", "murzinka","murzinek", "murzynek"]
